@@ -108,7 +108,10 @@ test('within attributes', function(assert) {
 });
 
 test('<script type="text/element" src="..."></script> includes', function(assert) {
-  var el = render('hello.el', {name: 'Paul Engel', languages: ['ruby', 'javascript', 'elixir']});
+  var
+    object = {name: 'Paul Engel', skills: ['ruby', 'javascript', 'elixir']},
+    el = render('hello.el', object);
+
   assert.equal(el.outerHTML, `<div><h1>Hello world!</h1>
 <p>
   My name is Paul Engel.
@@ -117,4 +120,17 @@ test('<script type="text/element" src="..."></script> includes', function(assert
   I am pretty much experienced in: ruby, javascript, elixir.
 </p>
 </div>`, 'matches and uses included <script> as template');
+
+  object.name = 'Bruce Wayne';
+  object.skills.length = 0;
+  object.skills.push('crime fighting', 'being rich', 'looking cool in my suit');
+
+  assert.equal(el.outerHTML, `<div><h1>Hello world!</h1>
+<p>
+  My name is Bruce Wayne.
+</p>
+<p>
+  I am pretty much experienced in: crime fighting, being rich, looking cool in my suit.
+</p>
+</div>`, 'updates the element after changes');
 });

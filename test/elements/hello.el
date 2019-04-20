@@ -3,5 +3,5 @@
   My name is { name }.
 </p>
 <p>
-  I am pretty much experienced in: { languages.join(', ') }.
+  I am pretty much experienced in: { skills.join(', ') }.
 </p>
