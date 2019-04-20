@@ -48,7 +48,7 @@ Element = (function() {
 
     var el = createElement(template);
     removeAndExecuteScripts(el);
-    interpolate(el, object);
+    evaluateTemplates(el, object);
 
     if ((el.childNodes.length == 1) && (el.childNodes[0].nodeType != Node.TEXT_NODE)) {
       el = el.childNodes[0];
@@ -74,28 +74,28 @@ Element = (function() {
     }
   },
 
-  interpolate = function(el, object) {
+  evaluateTemplates = function(el, object) {
     var
       walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, null, false),
-      node, attribute, i;
+      node, attr, i;
 
     while (node = walker.nextNode()) {
       if ((node.nodeType == Node.TEXT_NODE) && node.nodeValue.indexOf('{') != -1) {
-        node.nodeValue = evaluate(object, node, node.nodeValue);
+        node.nodeValue = evaluateTemplate(node.nodeValue, object, node);
       }
       if (node.nodeType == Node.ELEMENT_NODE) {
         for (i = 0; i < node.attributes.length; i++) {
-          attribute = node.attributes[i];
-          if (attribute.nodeValue.indexOf('{') != -1) {
-            attribute.nodeValue = evaluate(object, attribute, attribute.nodeValue);
+          attr = node.attributes[i];
+          if (attr.nodeValue.indexOf('{') != -1) {
+            attr.nodeValue = evaluateTemplate(attr.nodeValue, object, attr);
           }
         }
       }
     }
   },
 
-  evaluate = function(object, node, template) {
-    return replaceExpressions(template, function(expression) {
+  evaluateTemplate = function(template, object, node) {
+    return evaluateExpressions(template, function(expression) {
       var
         vars = ['var _'],
         variable;
@@ -118,7 +118,7 @@ Element = (function() {
     });
   },
 
-  replaceExpressions = function(template, callback) {
+  evaluateExpressions = function(template, callback) {
     var
       count = 0,
       buffer = '',
@@ -211,7 +211,7 @@ Element = (function() {
 
     for (i = 0; i < nodes.length; i++) {
       node = nodes[i];
-      node.nodeValue = evaluate(object, node, node[__template__]);
+      node.nodeValue = evaluateTemplate(node[__template__], object, node);
     }
   };
 
