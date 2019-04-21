@@ -14,9 +14,14 @@ Element = (function() {
   'use strict';
 
   var
+    _ = '_',
+    __elid__ = '__elid__',
+    __for__ = '__for__',
     __template__ = '__template__',
+
     templates = {},
     bindings = {},
+    elid = 0,
 
   init = function() {
     var
@@ -33,7 +38,7 @@ Element = (function() {
     };
 
     for (i = 0; i < scripts.length; i++) {
-      xhr.open('GET', scripts[i].getAttribute('src'));
+      xhr.open('GET', scripts[i].getAttribute('src'), false);
       xhr.send();
     }
   },
@@ -42,19 +47,34 @@ Element = (function() {
     template || (template = '');
     object || (object = {});
 
+    setId(object);
+
     if (templates[template]) {
       template = templates[template];
     }
 
     var el = createElement(template);
     removeAndExecuteScripts(el);
-    evaluateTemplates(el, object);
+    insertTemplates(el);
+    evaluateNode(el, object);
 
     if ((el.childNodes.length == 1) && (el.childNodes[0].nodeType != Node.TEXT_NODE)) {
       el = el.childNodes[0];
     }
 
     return el;
+  },
+
+  setId = function(object) {
+    if (object[__elid__]) {
+      return false;
+    } else {
+      Object.defineProperty(object, __elid__, {
+        enumerable: false,
+        value: elid++
+      });
+      return true;
+    }
   },
 
   createElement = function(template) {
@@ -74,80 +94,136 @@ Element = (function() {
     }
   },
 
-  evaluateTemplates = function(el, object) {
+  insertTemplates = function(el) {
     var
-      walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, null, false),
+      template,
+      nodes = el.querySelectorAll('[for]'),
+      i, node;
+
+    for (i = 0; i < nodes.length; i++) {
+      node = nodes[i];
+      if (!insideTemplateNode(node)) {
+        template = document.createElement('template');
+        template[__for__] = node.getAttribute('for').match(/\{\s*(.*?)\s*\}/)[1];
+        node.removeAttribute('for');
+        node.parentNode.insertBefore(template, node);
+        template.appendChild(node);
+      }
+    }
+  },
+
+  insideTemplateNode = function(node) {
+    var parentNode = node.parentNode;
+    if ((parentNode == null) || (parentNode == document.body)) {
+      return false;
+    }
+    return !!parentNode.getAttribute('for') || (parentNode.tagName == 'TEMPLATE') || insideTemplateNode(parentNode);
+  },
+
+  evaluateNode = function(el, object) {
+    var
+      walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
+        acceptNode: function(node) {
+          if (node.parentNode.tagName == 'TEMPLATE') {
+            return NodeFilter.FILTER_REJECT;
+          } else {
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      }, false),
       node, attr, i;
 
     while (node = walker.nextNode()) {
-      if ((node.nodeType == Node.TEXT_NODE) && node.nodeValue.indexOf('{') != -1) {
-        node.nodeValue = evaluateTemplate(node.nodeValue, object, node);
-      }
       if (node.nodeType == Node.ELEMENT_NODE) {
-        for (i = 0; i < node.attributes.length; i++) {
-          attr = node.attributes[i];
-          if (attr.nodeValue.indexOf('{') != -1) {
-            attr.nodeValue = evaluateTemplate(attr.nodeValue, object, attr);
+        if (node[__for__]) {
+          evaluateTemplate(object, node);
+        } else {
+          for (i = 0; i < node.attributes.length; i++) {
+            attr = node.attributes[i];
+            evaluateString(object, attr);
           }
+        }
+      }
+      if (node.nodeType == Node.TEXT_NODE) {
+        evaluateString(object, node);
+      }
+    }
+  },
+
+  evaluateTemplate = function(object, node) {
+    var
+      template = node.childNodes[0].outerHTML,
+      collection = evaluateExpression(object, node, node[__for__]),
+      i, el;
+
+    if (collection) {
+      for (i = 0; i < collection.length; i++) {
+        object = collection[i];
+        if (setId(object)) {
+          el = render(template, object);
+          register(el, object);
+          node.parentNode.insertBefore(el, node);
         }
       }
     }
   },
 
-  evaluateTemplate = function(template, object, node) {
-    return evaluateExpressions(template, function(expression) {
+  evaluateString = function(object, node, template) {
+    template || (template = node.nodeValue);
+
+    if (template.indexOf('{') != -1) {
       var
-        vars = ['var _'],
-        variable;
+        count = 0,
+        buffer = '',
+        result = '',
+        i, c;
 
-      expression.replace(/(?<!\.)\b\w+(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(property) {
-        if (object.hasOwnProperty(property)) {
-          variable = property + ' = object[\'' + property + '\']';
-          if (vars.indexOf(variable) == -1) {
-            vars.push(variable);
-            bind(object, property, node);
+      for (i = 0; i < template.length; i++) {
+        c = template[i];
+        if (c == '{') {
+          if (count > 0) {
+            buffer += c;
           }
+          count++;
+        } else if (c == '}') {
+          count--;
+          if (count == 0) {
+            result += evaluateExpression(object, node, buffer);
+            buffer = '';
+          } else {
+            buffer += c;
+          }
+        } else if (count > 0) {
+          buffer += c;
+        } else {
+          result += c;
         }
-      });
+      }
 
-      try {
-        return eval(vars.join(', ') + '; _ = ' + expression + '; typeof(_) == \'undefined\' ? \'\' : _');
-      } catch (e) {
-        return '';
+      node.nodeValue = result + buffer;
+    }
+  },
+
+  evaluateExpression = function(object, node, expression) {
+    var
+      vars = ['var _'],
+      variable;
+
+    expression.replace(/(?<!\.)\b\w+(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(property) {
+      if (object.hasOwnProperty(property)) {
+        variable = property + ' = object[\'' + property + '\']';
+        if (vars.indexOf(variable) == -1) {
+          vars.push(variable);
+          bind(object, property, node);
+        }
       }
     });
-  },
 
-  evaluateExpressions = function(template, callback) {
-    var
-      count = 0,
-      buffer = '',
-      result = '',
-      i, c;
-
-    for (i = 0; i < template.length; i++) {
-      c = template[i];
-      if (c == '{') {
-        if (count > 0) {
-          buffer += c;
-        }
-        count++;
-      } else if (c == '}') {
-        count--;
-        if (count == 0) {
-          result += callback(buffer);
-          buffer = '';
-        } else {
-          buffer += c;
-        }
-      } else if (count > 0) {
-        buffer += c;
-      } else {
-        result += c;
-      }
+    try {
+      return eval(vars.join(', ') + '; _ = ' + expression + '; typeof(_) == \'undefined\' ? \'\' : _');
+    } catch (e) {
+      return '';
     }
-
-    return result + buffer;
   },
 
   bind = function(object, property, node) {
@@ -160,6 +236,7 @@ Element = (function() {
           return value;
         },
         set: function(val) {
+          deleteAll(value);
           value = bindValue(val, object, property);
           trigger(object, property);
           return true;
@@ -167,7 +244,7 @@ Element = (function() {
       });
     }
 
-    register(object, property, node);
+    register(node, object, property);
   },
 
   bindValue = function(value, object, property) {
@@ -179,22 +256,27 @@ Element = (function() {
           return true;
         },
         deleteProperty: function(array, index) {
+          var elid = array[index][__elid__], i;
           delete array[index];
-          for (var i = 0; i < array.length; i++) {
+          for (i = 0; i < array.length; i++) {
             array[i] = array[(i < index) ? i : (i + 1)];
           }
           array.length--;
           trigger(object, property);
+          deleteById(elid);
         }
       });
     }
     return value;
   },
 
-  register = function(object, property, node) {
-    var objectBindings, nodes;
+  register = function(node, object, property) {
+    var
+      elid = object[__elid__],
+      objectBindings, nodes;
 
-    objectBindings = bindings[object] || (bindings[object] = {}),
+    property || (property = _);
+    objectBindings = bindings[elid] || (bindings[elid] = {}),
     nodes = objectBindings[property] || (objectBindings[property] = []);
 
     if (nodes.indexOf(node) == -1) {
@@ -204,14 +286,40 @@ Element = (function() {
   },
 
   trigger = function(object, property) {
-    var objectBindings, nodes, node, i;
+    var
+      elid = object[__elid__],
+      objectBindings, nodes, node, i;
 
-    objectBindings = bindings[object] || {};
+    objectBindings = bindings[elid] || {};
     nodes = objectBindings[property] || [];
 
     for (i = 0; i < nodes.length; i++) {
       node = nodes[i];
-      node.nodeValue = evaluateTemplate(node[__template__], object, node);
+      if (node.tagName == 'TEMPLATE') {
+        evaluateTemplate(object, node);
+      } else {
+        evaluateString(object, node, node[__template__]);
+      }
+    }
+  },
+
+  deleteAll = function(value) {
+    if (Object.prototype.toString.call(value) == '[object Array]') {
+      for (var i = 0; i < value.length; i++) {
+        deleteById(value[i][__elid__]);
+      }
+    }
+  },
+
+  deleteById = function(elid) {
+    var
+      objectBindings = bindings[elid] || {},
+      nodes = objectBindings[_] || [],
+      node, i;
+
+    for (i = 0; i < nodes.length; i++) {
+      node = nodes[i];
+      node.parentNode.removeChild(node);
     }
   };
 

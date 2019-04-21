@@ -134,3 +134,148 @@ test('<script type="text/element" src="..."></script> includes', function(assert
 </p>
 </div>`, 'updates the element after changes');
 });
+
+test('render collections', function(assert) {
+  var
+    object = {super_heroes: [
+      {name: 'Superman', alter_ego: 'Clark Joseph Kent'},
+      {name: 'Batman', alter_ego: 'Bruce Wayne'},
+      {name: 'Spider-Man', alter_ego: 'Peter Benjamin Parker'},
+      {name: 'Iron Man', alter_ego: 'Anthony Edward Stark'},
+      {name: 'Hulk', alter_ego: 'Robert Bruce Banner'}
+    ]},
+    el = render('super-heroes.el', object);
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Superman</strong> (Clark Joseph Kent)
+  </li><li>
+    <strong>Batman</strong> (Bruce Wayne)
+  </li><li>
+    <strong>Spider-Man</strong> (Peter Benjamin Parker)
+  </li><li>
+    <strong>Iron Man</strong> (Anthony Edward Stark)
+  </li><li>
+    <strong>Hulk</strong> (Robert Bruce Banner)
+  </li><template></template>
+</ul>
+</div>`, 'renders elements for every entry');
+
+  object.super_heroes[1].alter_ego = 'Bram Engel';
+  object.super_heroes[3].alter_ego = 'Tony Montana';
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Superman</strong> (Clark Joseph Kent)
+  </li><li>
+    <strong>Batman</strong> (Bram Engel)
+  </li><li>
+    <strong>Spider-Man</strong> (Peter Benjamin Parker)
+  </li><li>
+    <strong>Iron Man</strong> (Tony Montana)
+  </li><li>
+    <strong>Hulk</strong> (Robert Bruce Banner)
+  </li><template></template>
+</ul>
+</div>`, 'updates elements after changing entries');
+
+  delete object.super_heroes[0];
+  delete object.super_heroes[2];
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Batman</strong> (Bram Engel)
+  </li><li>
+    <strong>Spider-Man</strong> (Peter Benjamin Parker)
+  </li><li>
+    <strong>Hulk</strong> (Robert Bruce Banner)
+  </li><template></template>
+</ul>
+</div>`, 'removes elements after deleted entries');
+
+  object.super_heroes = [{name: 'Foo', alter_ego: 'Bar'}];
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Foo</strong> (Bar)
+  </li><template></template>
+</ul>
+</div>`, 'replaces all elements after assigning new array');
+});
+
+test('render nested collections', function(assert) {
+  var
+    object = {
+      groups: [
+        {
+          name: 'Super heroes',
+          characters: [
+            {name: 'Superman'},
+            {name: 'Batman'},
+            {name: 'Spider-Man'},
+            {name: 'Iron Man'},
+            {name: 'Hulk'}
+          ]
+        }, {
+          name: 'Super villains',
+          characters: [
+            {name: 'Lex Luthor'},
+            {name: 'Joker'},
+            {name: 'Venom'},
+            {name: 'Mandarin'},
+            {name: 'Sandman'}
+          ]
+        }
+      ]
+    },
+    el = render('heroes-vs-villains.el', object);
+
+  assert.equal(el.outerHTML, `<div><div>
+  <h2>
+    Super heroes
+  </h2>
+  <ul>
+    <li>
+      <strong>Superman</strong>
+    </li><li>
+      <strong>Batman</strong>
+    </li><li>
+      <strong>Spider-Man</strong>
+    </li><li>
+      <strong>Iron Man</strong>
+    </li><li>
+      <strong>Hulk</strong>
+    </li><template></template>
+  </ul>
+</div><div>
+  <h2>
+    Super villains
+  </h2>
+  <ul>
+    <li>
+      <strong>Lex Luthor</strong>
+    </li><li>
+      <strong>Joker</strong>
+    </li><li>
+      <strong>Venom</strong>
+    </li><li>
+      <strong>Mandarin</strong>
+    </li><li>
+      <strong>Sandman</strong>
+    </li><template></template>
+  </ul>
+</div><template></template>
+</div>`, 'renders elements for every entry');
+});
