@@ -10,18 +10,20 @@ var
 // * $Date: {date} $
 // *
 
-Element = (function() {
+ElementJS = (function() {
   'use strict';
 
   var
-    _ = '_',
-    __elid__ = '__elid__',
-    __for__ = '__for__',
-    __template__ = '__template__',
-
     templates = {},
     bindings = {},
-    elid = 0,
+    elid = 1,
+
+    _            = '_'           ,
+    __elid__     = '__elid__'    ,
+    __for__      = '__for__'     ,
+    __if__       = '__if__'      ,
+    __tag__      = '__tag__'     ,
+    __template__ = '__template__',
 
   init = function() {
     var
@@ -43,7 +45,7 @@ Element = (function() {
     }
   },
 
-  render = function(template, object) {
+  render = function(template, object, tag) {
     template || (template = '');
     object || (object = {});
 
@@ -61,20 +63,21 @@ Element = (function() {
     if ((el.childNodes.length == 1) && (el.childNodes[0].nodeType != Node.TEXT_NODE)) {
       el = el.childNodes[0];
     }
+    el[__tag__] = tag;
 
     return el;
   },
 
   setId = function(object) {
-    if (object[__elid__]) {
-      return false;
-    } else {
+    if (!object[__elid__]) {
+      var id = 'el' + elid;
       Object.defineProperty(object, __elid__, {
         enumerable: false,
-        value: elid++
+        value: id
       });
-      return true;
+      elid++;
     }
+    return object[__elid__];
   },
 
   createElement = function(template) {
@@ -96,16 +99,13 @@ Element = (function() {
 
   insertTemplates = function(el) {
     var
-      template,
-      nodes = el.querySelectorAll('[for]'),
-      i, node;
+      nodes = el.querySelectorAll('[for],[if]'),
+      i, node, template;
 
     for (i = 0; i < nodes.length; i++) {
       node = nodes[i];
       if (!insideTemplateNode(node)) {
-        template = document.createElement('template');
-        template[__for__] = node.getAttribute('for').match(/\{\s*(.*?)\s*\}/)[1];
-        node.removeAttribute('for');
+        template = createTemplate(node);
         node.parentNode.insertBefore(template, node);
         template.appendChild(node);
       }
@@ -117,7 +117,24 @@ Element = (function() {
     if ((parentNode == null) || (parentNode == document.body)) {
       return false;
     }
-    return !!parentNode.getAttribute('for') || (parentNode.tagName == 'TEMPLATE') || insideTemplateNode(parentNode);
+    return (parentNode.tagName == 'TEMPLATE') || insideTemplateNode(parentNode);
+  },
+
+  createTemplate = function(node) {
+    var
+      template = document.createElement('template'),
+      mapping = {for: __for__, if: __if__},
+      attribute, value;
+
+    for (attribute in mapping) {
+      value = node.getAttribute(attribute);
+      if (value) {
+        template[mapping[attribute]] = node.getAttribute(attribute).match(/\{\s*(.*?)\s*\}/)[1];
+        node.removeAttribute(attribute);
+      }
+    }
+
+    return template;
   },
 
   evaluateNode = function(el, object) {
@@ -135,7 +152,7 @@ Element = (function() {
 
     while (node = walker.nextNode()) {
       if (node.nodeType == Node.ELEMENT_NODE) {
-        if (node[__for__]) {
+        if (node[__for__] || node[__if__]) {
           evaluateTemplate(object, node);
         } else {
           for (i = 0; i < node.attributes.length; i++) {
@@ -152,20 +169,76 @@ Element = (function() {
 
   evaluateTemplate = function(object, node) {
     var
+      elid = setId(node),
       template = node.childNodes[0].outerHTML,
-      collection = evaluateExpression(object, node, node[__for__]),
-      i, el;
+      siblingTags = [],
+      siblings = (function() {
+        var siblings = [], child, tag;
+        for (child of node.parentNode.children) {
+          if (child !== node) {
+            tag = child[__tag__] || '';
+            if (tag.indexOf(elid + ':') != -1) {
+              siblingTags.push(tag);
+              siblings.push(child);
+            }
+          }
+        }
+        return siblings;
+      }()),
+      renderObject = function(object, tag) {
+        var el = render(template, object, tag);
+        node.parentNode.insertBefore(el, node);
+      },
+      value = evaluateExpression(object, node, node[__for__] || node[__if__]),
+      valueTags, i, sibling, tag;
 
-    if (collection) {
-      for (i = 0; i < collection.length; i++) {
-        object = collection[i];
-        if (setId(object)) {
-          el = render(template, object);
-          register(el, object);
-          node.parentNode.insertBefore(el, node);
+    if (node[__for__]) {
+      value = value || [];
+      valueTags = [];
+
+      for (i = 0; i < value.length; i++) {
+        valueTags.push(elid + ':' + setId(value[i]));
+      }
+
+      for (i = 0; i < siblings.length; i++) {
+        sibling = siblings[i];
+        tag = sibling[__tag__];
+        if (valueTags.indexOf(tag) == -1) {
+          deleteNode(sibling);
+        }
+      }
+
+      for (i = 0; i < value.length; i++) {
+        object = value[i];
+        tag = elid + ':' + object[__elid__];
+        if (siblingTags.indexOf(tag) == -1) {
+          renderObject(object, tag);
+        }
+      }
+    } else {
+      tag = elid + ':' + setId(object);
+      if (value) {
+        for (i = 0; i < siblings.length; i++) {
+          sibling = siblings[i];
+          if (sibling[__tag__] == tag) {
+            return;
+          }
+        }
+        renderObject(object, tag);
+      } else {
+        for (i = 0; i < siblings.length; i++) {
+          sibling = siblings[i];
+          if (sibling[__tag__] == tag) {
+            deleteNode(sibling);
+            return;
+          }
         }
       }
     }
+  },
+
+  deleteNode = function(node) {
+    node.parentNode.removeChild(node);
   },
 
   evaluateString = function(object, node, template) {
@@ -188,7 +261,7 @@ Element = (function() {
         } else if (c == '}') {
           count--;
           if (count == 0) {
-            result += evaluateExpression(object, node, buffer);
+            result += evaluateExpression(object, node, buffer.replace(/(^\s*|\s*$)/g, ''));
             buffer = '';
           } else {
             buffer += c;
@@ -207,91 +280,118 @@ Element = (function() {
   evaluateExpression = function(object, node, expression) {
     var
       vars = ['var _'],
-      variable;
+      property, variable;
 
-    expression.replace(/(?<!\.)\b\w+(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(property) {
-      if (object.hasOwnProperty(property)) {
-        variable = property + ' = object[\'' + property + '\']';
-        if (vars.indexOf(variable) == -1) {
-          vars.push(variable);
-          bind(object, property, node);
-        }
+    expression.replace(/(?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(path) {
+      path = path.replace(/\.\w+\(/, '').split('.');
+      property = path[0];
+      variable = property + ' = object[\'' + property + '\'] || window[\'' + property + '\']';
+      if (vars.indexOf(variable) == -1) {
+        vars.push(variable);
+        register(node, object, path.join('.'));
+        bind(node, object, path);
       }
     });
 
     try {
-      return eval(vars.join(', ') + '; _ = ' + expression + '; typeof(_) == \'undefined\' ? \'\' : _');
+      return eval(vars.join(', ') + '; _ = ' + expression + '; (typeof(_) == \'undefined\') ? \'\' : _');
     } catch (e) {
       return '';
     }
   },
 
-  bind = function(object, property, node) {
-    var descriptor = Object.getOwnPropertyDescriptor(object, property), value;
+  bind = function(node, object, path, value, trail) {
+    if (arguments.length == 3) {
+      value = object;
+      trail = [];
+    }
+
+    switch (Object.prototype.toString.call(value)) {
+      case '[object Object]':
+        return bindObject(node, object, path, value, trail);
+      case '[object Array]':
+        return bindArray(node, object, path, value, trail);
+      default:
+        return value;
+    }
+  },
+
+  bindObject = function(node, rootObject, path, object, trail) {
+    if (!path.length) {
+      return object;
+    }
+
+    var
+      property = path.shift(),
+      value = object[property],
+      descriptor = Object.getOwnPropertyDescriptor(object, property),
+      triggerPath;
+
+    trail.push(property);
+    value = bind(node, rootObject, path, value, trail);
 
     if (!descriptor || !descriptor.set) {
-      value = bindValue(object[property], object, property);
+      triggerPath = trail.join('.');
       Object.defineProperty(object, property, {
         get: function() {
           return value;
         },
         set: function(val) {
-          deleteAll(value);
-          value = bindValue(val, object, property);
-          trigger(object, property);
+          value = bind(node, rootObject, path, val, trail);
+          trigger(rootObject, triggerPath);
           return true;
         }
       });
     }
 
-    register(node, object, property);
+    return object;
   },
 
-  bindValue = function(value, object, property) {
-    if (Object.prototype.toString.call(value) == '[object Array]') {
-      value = new Proxy(value, {
-        set: function(array, index, val) {
-          array[index] = val;
-          trigger(object, property);
-          return true;
-        },
-        deleteProperty: function(array, index) {
-          var elid = array[index][__elid__], i;
-          delete array[index];
-          for (i = 0; i < array.length; i++) {
-            array[i] = array[(i < index) ? i : (i + 1)];
-          }
-          array.length--;
-          trigger(object, property);
-          deleteById(elid);
+  bindArray = function(node, rootObject, _path, array, trail) {
+    var
+      triggerPath = trail.join('.');
+
+    return new Proxy(array, {
+      set: function(array, index, val) {
+        array[index] = val;
+        trigger(rootObject, triggerPath);
+        return true;
+      },
+      deleteProperty: function(array, index) {
+        var elid = array[index][__elid__], i;
+        delete array[index];
+        for (i = 0; i < array.length; i++) {
+          array[i] = array[(i < index) ? i : (i + 1)];
         }
-      });
-    }
-    return value;
+        array.length--;
+        trigger(rootObject, triggerPath);
+      }
+    });
   },
 
-  register = function(node, object, property) {
+  register = function(node, object, path) {
     var
       elid = object[__elid__],
-      objectBindings, nodes;
+      properties = [],
+      objectBindings, i, key, nodes;
 
-    property || (property = _);
-    objectBindings = bindings[elid] || (bindings[elid] = {}),
-    nodes = objectBindings[property] || (objectBindings[property] = []);
+    objectBindings = bindings[elid] || (bindings[elid] = {});
+    nodes = objectBindings[path] || (objectBindings[path] = []);
 
     if (nodes.indexOf(node) == -1) {
       nodes.push(node);
-      node[__template__] || (node[__template__] = node.nodeValue);
+      node[__template__] || (node[__template__] = template(node));
     }
   },
 
-  trigger = function(object, property) {
+  trigger = function(object, path) {
     var
       elid = object[__elid__],
-      objectBindings, nodes, node, i;
+      objectBindings, nodes,
+      i, node;
 
     objectBindings = bindings[elid] || {};
-    nodes = objectBindings[property] || [];
+    nodes = objectBindings[path] || [];
 
     for (i = 0; i < nodes.length; i++) {
       node = nodes[i];
@@ -303,24 +403,8 @@ Element = (function() {
     }
   },
 
-  deleteAll = function(value) {
-    if (Object.prototype.toString.call(value) == '[object Array]') {
-      for (var i = 0; i < value.length; i++) {
-        deleteById(value[i][__elid__]);
-      }
-    }
-  },
-
-  deleteById = function(elid) {
-    var
-      objectBindings = bindings[elid] || {},
-      nodes = objectBindings[_] || [],
-      node, i;
-
-    for (i = 0; i < nodes.length; i++) {
-      node = nodes[i];
-      node.parentNode.removeChild(node);
-    }
+  template = function(node) {
+    return node.tagName == 'TEMPLATE' ? node.childNodes[0].outerHTML : node.nodeValue;
   };
 
   init();
@@ -330,5 +414,5 @@ Element = (function() {
   };
 }()),
 
-El = Element;
+El = ElementJS;
 document.renderElement = El.render;
