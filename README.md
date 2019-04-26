@@ -14,7 +14,7 @@ Just include el.js:
 
 ### Testing el.js with QUnit
 
-The `el.js` library is tested with [QUnit](http://qunitjs.com). Check out the test results at [https://archan937.github.io/el.js/test](https://archan937.github.io/el.js/test).
+The `el.js` library is tested with [QUnit](http://qunitjs.com). Check out the test results at [https://archan937.github.io/el.js/test/index.html](https://archan937.github.io/el.js/test/index.html).
 
 ## Usage
 
