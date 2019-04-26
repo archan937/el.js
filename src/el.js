@@ -18,7 +18,6 @@ ElementJS = (function() {
     bindings = {},
     elid = 1,
 
-    _            = '_'           ,
     __elid__     = '__elid__'    ,
     __for__      = '__for__'     ,
     __if__       = '__if__'      ,
@@ -123,7 +122,7 @@ ElementJS = (function() {
   createTemplate = function(node) {
     var
       template = document.createElement('template'),
-      mapping = {for: __for__, if: __if__},
+      mapping = {'for': __for__, 'if': __if__},
       attribute, value;
 
     for (attribute in mapping) {
@@ -173,8 +172,9 @@ ElementJS = (function() {
       template = node.childNodes[0].outerHTML,
       siblingTags = [],
       siblings = (function() {
-        var siblings = [], child, tag;
-        for (child of node.parentNode.children) {
+        var siblings = [], i, child, tag;
+        for (i = 0; i < node.parentNode.children.length; i++) {
+          child = node.parentNode.children[i];
           if (child !== node) {
             tag = child[__tag__] || '';
             if (tag.indexOf(elid + ':') != -1) {
@@ -358,9 +358,8 @@ ElementJS = (function() {
         return true;
       },
       deleteProperty: function(array, index) {
-        var elid = array[index][__elid__], i;
         delete array[index];
-        for (i = 0; i < array.length; i++) {
+        for (var i = 0; i < array.length; i++) {
           array[i] = array[(i < index) ? i : (i + 1)];
         }
         array.length--;
@@ -372,8 +371,7 @@ ElementJS = (function() {
   register = function(node, object, path) {
     var
       elid = object[__elid__],
-      properties = [],
-      objectBindings, i, key, nodes;
+      objectBindings, nodes;
 
     objectBindings = bindings[elid] || (bindings[elid] = {});
     nodes = objectBindings[path] || (objectBindings[path] = []);
