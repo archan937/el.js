@@ -34,16 +34,22 @@ task :release, :version do |task, args|
   # Create files
   FileUtils.cp("README.md", "#{release_dir}/README.md")
   FileUtils.cp("CHANGELOG.md", "#{release_dir}/CHANGELOG.md")
-  FileUtils.cp_r("demo", "#{release_dir}/")
+
+  if File.exists?("demo")
+    FileUtils.cp_r("demo", "#{release_dir}/")
+  end
+
+  File.open("VERSION", "w").puts(args[:version])
   File.open("#{release_dir}/#{LIBRARY}.js", "w") do |file|
     javascript.each do |line|
       file.write line
     end
   end
-  File.open("VERSION", "w").puts(args[:version])
 
   # Correct demo pages
-  `sed -i -- 's/#{SOURCE_DIR}\\/#{LIBRARY}/#{LIBRARY}\\.min/g' #{release_dir}/demo/*.html`
+  if File.exists?("demo")
+    `sed -i -- 's/#{SOURCE_DIR}\\/#{LIBRARY}/#{LIBRARY}\\.min/g' #{release_dir}/demo/*.html`
+  end
 
   # Compress release using YUI compressor and GZip
   `java -jar lib/yuicompressor-2.4.8.jar -v #{release_dir}/#{LIBRARY}.js -o #{release_dir}/#{LIBRARY}.min.js`
