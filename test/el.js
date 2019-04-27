@@ -1,13 +1,13 @@
 var
 
 // *
-// * el.js {version} (Uncompressed)
+// * el.js 0.1.0 (Uncompressed)
 // * A straightforward and lightweight Javascript library for data-binded template rendering.
 // *
-// * (c) {year} Paul Engel
+// * (c) 2019 Paul Engel
 // * el.js is licensed under MIT license
 // *
-// * $Date: {date} $
+// * $Date: 2019-04-29 01:03:11 +0100 (Mon, 29 April 2019) $
 // *
 
 ElementJS = (function() {
@@ -18,7 +18,6 @@ ElementJS = (function() {
     bindings = {},
     elid = 1,
 
-    _            = '_'           ,
     __elid__     = '__elid__'    ,
     __for__      = '__for__'     ,
     __if__       = '__if__'      ,
@@ -55,14 +54,15 @@ ElementJS = (function() {
       template = templates[template];
     }
 
-    var el = createElement(template);
-    removeAndExecuteScripts(el);
-    insertTemplates(el);
-    evaluateNode(el, object);
+    var
+      div = document.createElement('div'),
+      el = createElement(template);
 
-    if ((el.childNodes.length == 1) && (el.childNodes[0].nodeType != Node.TEXT_NODE)) {
-      el = el.childNodes[0];
-    }
+    div.appendChild(el);
+    insertTemplates(div);
+    evaluateNode(div, object);
+
+    el = (div.childNodes.length == 1) ? div.childNodes[0] : div;
     el[__tag__] = tag;
 
     return el;
@@ -81,18 +81,32 @@ ElementJS = (function() {
   },
 
   createElement = function(template) {
-    var el = document.createElement('div');
+    var
+      el = document.createElement('template'),
+      childNodes, i;
+
     el.innerHTML = template;
-    return el;
+    el = el.content;
+    removeScripts(el);
+
+    if (el.children.length == 1) {
+      return el.children[0];
+    } else {
+      childNodes = el.childNodes;
+      el = document.createElement('div');
+      for (i = childNodes.length - 1; i >= 0; i--) {
+        el.insertBefore(childNodes[i], el.firstChild);
+      }
+      return el;
+    }
   },
 
-  removeAndExecuteScripts = function(el) {
-    var node, i;
-    for (i = 0; i < el.childNodes.length; i++) {
-      node = el.childNodes[i];
-      if (node.tagName == 'SCRIPT') {
-        node.parentNode.removeChild(node);
-        eval(node.innerHTML);
+  removeScripts = function(el) {
+    var i, child;
+    for (i = 0; i < el.children.length; i++) {
+      child = el.children[i];
+      if (child.tagName == 'SCRIPT') {
+        child.parentNode.removeChild(child);
       }
     }
   },
@@ -123,7 +137,7 @@ ElementJS = (function() {
   createTemplate = function(node) {
     var
       template = document.createElement('template'),
-      mapping = {for: __for__, if: __if__},
+      mapping = {'for': __for__, 'if': __if__},
       attribute, value;
 
     for (attribute in mapping) {
@@ -173,8 +187,9 @@ ElementJS = (function() {
       template = node.childNodes[0].outerHTML,
       siblingTags = [],
       siblings = (function() {
-        var siblings = [], child, tag;
-        for (child of node.parentNode.children) {
+        var siblings = [], i, child, tag;
+        for (i = 0; i < node.parentNode.children.length; i++) {
+          child = node.parentNode.children[i];
           if (child !== node) {
             tag = child[__tag__] || '';
             if (tag.indexOf(elid + ':') != -1) {
@@ -287,9 +302,14 @@ ElementJS = (function() {
       property = path[0];
       variable = property + ' = object[\'' + property + '\'] || window[\'' + property + '\']';
       if (vars.indexOf(variable) == -1) {
-        vars.push(variable);
-        register(node, object, path.join('.'));
-        bind(node, object, path);
+        try {
+          eval('var ' + variable);
+          vars.push(variable);
+          register(node, object, path.join('.'));
+          bind(node, object, path);
+        } catch (e) {
+          // reserved word
+        }
       }
     });
 
@@ -358,9 +378,8 @@ ElementJS = (function() {
         return true;
       },
       deleteProperty: function(array, index) {
-        var elid = array[index][__elid__], i;
         delete array[index];
-        for (i = 0; i < array.length; i++) {
+        for (var i = 0; i < array.length; i++) {
           array[i] = array[(i < index) ? i : (i + 1)];
         }
         array.length--;
@@ -372,8 +391,7 @@ ElementJS = (function() {
   register = function(node, object, path) {
     var
       elid = object[__elid__],
-      properties = [],
-      objectBindings, i, key, nodes;
+      objectBindings, nodes;
 
     objectBindings = bindings[elid] || (bindings[elid] = {});
     nodes = objectBindings[path] || (objectBindings[path] = []);
@@ -387,18 +405,22 @@ ElementJS = (function() {
   trigger = function(object, path) {
     var
       elid = object[__elid__],
-      objectBindings, nodes,
+      objectBindings = (bindings[elid] || {}),
+      regexp = new RegExp('^' + path + '(\.|$)'),
+      bindedPath, nodes,
       i, node;
 
-    objectBindings = bindings[elid] || {};
-    nodes = objectBindings[path] || [];
-
-    for (i = 0; i < nodes.length; i++) {
-      node = nodes[i];
-      if (node.tagName == 'TEMPLATE') {
-        evaluateTemplate(object, node);
-      } else {
-        evaluateString(object, node, node[__template__]);
+    for (bindedPath in objectBindings) {
+      if (bindedPath.match(regexp)) {
+        nodes = objectBindings[bindedPath];
+        for (i = 0; i < nodes.length; i++) {
+          node = nodes[i];
+          if (node.tagName == 'TEMPLATE') {
+            evaluateTemplate(object, node);
+          } else {
+            evaluateString(object, node, node[__template__]);
+          }
+        }
       }
     }
   },
@@ -407,7 +429,11 @@ ElementJS = (function() {
     return node.tagName == 'TEMPLATE' ? node.childNodes[0].outerHTML : node.nodeValue;
   };
 
-  init();
+  if ((document.readyState == 'interactive') || (document.readyState == 'complete')) {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
 
   return {
     render: render

@@ -36,20 +36,19 @@ test('do not count <script> as an element', function(assert) {
   assert.equal(el.outerHTML, '<h1>Hello</h1>', 'excludes <script> from output');
 });
 
-test('execute <script> tags', function(assert) {
-  assert.throws(function() {
-    render('<script>throw "Error";</script>');
-  }, 'executes included <script>');
+test('remove <script> tags', function(assert) {
+  var el = render('<script>throw "Error";</script>');
+  assert.equal(el.outerHTML, '<div></div>', 'removes included <script>');
 });
 
 test('ignore non-existing keys', function(assert) {
   var el = render('<span>{ first_name }</span>');
   assert.equal(el.outerHTML, '<span></span>', 'results as empty text in output when no object given');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {first_name: 'Paul'});
+  var el = render('<span>{ first_name } {last_name }</span>', {first_name: 'Paul'});
   assert.equal(el.outerHTML, '<span>Paul </span>', 'results as empty text in output when key non-existent (1)');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {last_name: 'Engel'});
+  var el = render('<span>{ first_name } {last_name }</span>', {last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span> Engel</span>', 'results as empty text in output when key non-existent (2)');
 });
 
@@ -57,10 +56,10 @@ test('interpolate simple values', function(assert) {
   var el = render('<span>{ first_name }</span>', {first_name: 'Paul'});
   assert.equal(el.outerHTML, '<span>Paul</span>', 'interpolates single expression within a text node');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {first_name: 'Paul', last_name: 'Engel'});
+  var el = render('<span>{ first_name } {last_name }</span>', {first_name: 'Paul', last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span>Paul Engel</span>', 'interpolates multiple expressions within a text node');
 
-  var el = render('<span>{ first_name } <strong>separator</strong> {last_name}</span>', {first_name: 'Paul', last_name: 'Engel'});
+  var el = render('<span>{ first_name } <strong>separator</strong> {last_name }</span>', {first_name: 'Paul', last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span>Paul <strong>separator</strong> Engel</span>', 'respects nested nodes');
 });
 
@@ -68,23 +67,40 @@ test('interpolate with plain JS', function(assert) {
   var el = render('<span>{ amount * price }</span>', {amount: 1982, price: 1.8});
   assert.equal(el.outerHTML, '<span>3567.6</span>', 'allows mathematic operations within expressions');
 
-  var el = render('<span>{ first_name } {last_name} ({ tags.join(\', \') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
+  var el = render('<span>{ first_name } {last_name } ({ tags.join(\', \') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby, elixir)</span>', 'allows function invocations within expressions');
 
-  var el = render('<span>{ first_name } {last_name} ({ tags.join(\'{, }\') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
+  var el = render('<span>{ first_name } {last_name } ({ tags.join(\'{, }\') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby{, }elixir)</span>', 'does not crash when containing curly braces');
 });
 
 test('bind to objects', function(assert) {
   var
     object = {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']},
-    el = render('<span>{ first_name } {last_name}</span>', object);
+    el = render('<span>{ first_name } {last_name }</span>', object);
 
   object.first_name = 'Bruce';
   assert.equal(el.outerHTML, '<span>Bruce Engel</span>', 'updates dependent text node after first change');
 
   object.last_name = 'Wayne';
   assert.equal(el.outerHTML, '<span>Bruce Wayne</span>', 'updates dependent text node after succeeding change');
+});
+
+test('bind to nested objects', function(assert) {
+  var
+    object = {},
+    el = render('<span>{ selected.hero.name }</span>', object);
+
+  assert.equal(el.outerHTML, '<span></span>', 'results as empty text in output when no nested object given');
+
+  object.selected = {hero: {name: 'Bruce Wayne'}};
+  assert.equal(el.outerHTML, '<span>Bruce Wayne</span>', 'updates dependent text node after setting a nested object');
+
+  object.selected.hero.name = 'Clark Kent';
+  assert.equal(el.outerHTML, '<span>Clark Kent</span>', 'updates dependent text node after changing a nested value');
+
+  object.selected.hero = {};
+  assert.equal(el.outerHTML, '<span></span>', 'results as empty text when nested value is empty');
 });
 
 test('bind to arrays', function(assert) {
@@ -276,41 +292,80 @@ test('render nested collections', function(assert) {
       <strong>Sandman</strong>
     </li><template></template>
   </ul>
-</div><template></template>
-</div>`, 'renders elements for every entry');
+</div><template></template></div>`, 'renders elements for every entry');
 });
 
 test('if statements', function(assert) {
   var
     object = {},
-    el = render('super-hero.el', object);
+    el = document.createElement('div');
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing when key is missing');
+  el.appendChild(render('super-hero.el', object));
+
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing when key is missing');
 
   object.selected = null;
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing when expression is falsy');
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing when expression is falsy');
 
   object.selected = {name: 'Batman', description: 'Unlike most superheroes, Batman does not possess any inhuman superpowers. He does, however, possess a genius-level intellect, is a peerless martial artist, and his vast wealth affords him an extraordinary arsenal of weaponry and equipment.'};
 
   assert.equal(el.outerHTML, `<div><div>
   <h2>Batman</h2>
   <p>Unlike most superheroes, Batman does not possess any inhuman superpowers. He does, however, possess a genius-level intellect, is a peerless martial artist, and his vast wealth affords him an extraordinary arsenal of weaponry and equipment.</p>
-</div><template></template>
-</div>`, 'renders elements when expression is truthy');
+</div><template></template></div>`, 'renders elements when expression is truthy');
 
   object.selected.description = 'He is a pancake! #justkiddingbruce <3';
 
   assert.equal(el.outerHTML, `<div><div>
   <h2>Batman</h2>
   <p>He is a pancake! #justkiddingbruce &lt;3</p>
-</div><template></template>
-</div>`, 'renders elements when expression is truthy');
+</div><template></template></div>`, 'renders elements when expression is truthy');
 
   object.selected = null;
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing again when setting value to falsy');
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing again when setting value to falsy');
+});
+
+test('tables and extensive javascript', function(assert) {
+  var
+    object = {},
+    el = render('table-of-heroes.el', object);
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing when key is missing');
+
+  object.super_heroes = null;
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing when value is not an array');
+
+  object.super_heroes = [{name: 'Batman', created_at: 1556446639}];
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><template></template>
+</tbody></table>`, 'renders table when assigned');
+
+  object.super_heroes.push({name: 'Superman', created_at: 1556446642});
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><tr>
+    <td>Superman</td>
+    <td>28-4-2019 12:17:22</td>
+  </tr><template></template>
+</tbody></table>`, 'renders row for an added array item');
+
+  object.super_heroes = null;
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing again when setting value to falsy');
 });
