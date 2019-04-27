@@ -36,10 +36,9 @@ test('do not count <script> as an element', function(assert) {
   assert.equal(el.outerHTML, '<h1>Hello</h1>', 'excludes <script> from output');
 });
 
-test('execute <script> tags', function(assert) {
-  assert.throws(function() {
-    render('<script>throw "Error";</script>');
-  }, 'executes included <script>');
+test('remove <script> tags', function(assert) {
+  var el = render('<script>throw "Error";</script>');
+  assert.equal(el.outerHTML, '<div></div>', 'removes included <script>');
 });
 
 test('ignore non-existing keys', function(assert) {

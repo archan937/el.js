@@ -55,7 +55,7 @@ ElementJS = (function() {
     }
 
     var el = createElement(template);
-    removeAndExecuteScripts(el);
+    removeScripts(el);
     insertTemplates(el);
     evaluateNode(el, object);
 
@@ -85,13 +85,12 @@ ElementJS = (function() {
     return el;
   },
 
-  removeAndExecuteScripts = function(el) {
+  removeScripts = function(el) {
     var node, i;
     for (i = 0; i < el.childNodes.length; i++) {
       node = el.childNodes[i];
       if (node.tagName == 'SCRIPT') {
         node.parentNode.removeChild(node);
-        eval(node.innerHTML);
       }
     }
   },
