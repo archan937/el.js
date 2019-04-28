@@ -404,7 +404,11 @@ ElementJS = (function() {
     return node.tagName == 'TEMPLATE' ? node.childNodes[0].outerHTML : node.nodeValue;
   };
 
-  init();
+  if ((document.readyState == 'interactive') || (document.readyState == 'complete')) {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
 
   return {
     render: render
