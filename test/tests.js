@@ -309,3 +309,46 @@ test('if statements', function(assert) {
 
   assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing again when setting value to falsy');
 });
+
+test('tables and extensive javascript', function(assert) {
+  var
+    object = {},
+    el = render('table-of-heroes.el', object);
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing when key is missing');
+
+  object.super_heroes = null;
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing when value is not an array');
+
+  object.super_heroes = [{name: 'Batman', created_at: 1556446639}];
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><template></template>
+</tbody></table>`, 'renders table when assigned');
+
+  object.super_heroes.push({name: 'Superman', created_at: 1556446642});
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><tr>
+    <td>Superman</td>
+    <td>28-4-2019 12:17:22</td>
+  </tr><template></template>
+</tbody></table>`, 'renders row for an added array item');
+
+  object.super_heroes = null;
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><template></template>
+</tbody></table>`, 'renders nothing again when setting value to falsy');
+});

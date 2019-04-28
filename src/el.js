@@ -302,9 +302,14 @@ ElementJS = (function() {
       property = path[0];
       variable = property + ' = object[\'' + property + '\'] || window[\'' + property + '\']';
       if (vars.indexOf(variable) == -1) {
-        vars.push(variable);
-        register(node, object, path.join('.'));
-        bind(node, object, path);
+        try {
+          eval('var ' + variable);
+          vars.push(variable);
+          register(node, object, path.join('.'));
+          bind(node, object, path);
+        } catch (e) {
+          // reserved word
+        }
       }
     });
 
