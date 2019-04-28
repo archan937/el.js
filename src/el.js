@@ -54,14 +54,15 @@ ElementJS = (function() {
       template = templates[template];
     }
 
-    var el = createElement(template);
-    removeScripts(el);
-    insertTemplates(el);
-    evaluateNode(el, object);
+    var
+      div = document.createElement('div'),
+      el = createElement(template);
 
-    if ((el.childNodes.length == 1) && (el.childNodes[0].nodeType != Node.TEXT_NODE)) {
-      el = el.childNodes[0];
-    }
+    div.appendChild(el);
+    insertTemplates(div);
+    evaluateNode(div, object);
+
+    el = (div.childNodes.length == 1) ? div.childNodes[0] : div;
     el[__tag__] = tag;
 
     return el;
@@ -80,17 +81,32 @@ ElementJS = (function() {
   },
 
   createElement = function(template) {
-    var el = document.createElement('div');
+    var
+      el = document.createElement('template'),
+      childNodes, i;
+
     el.innerHTML = template;
-    return el;
+    el = el.content;
+    removeScripts(el);
+
+    if (el.children.length == 1) {
+      return el.children[0];
+    } else {
+      childNodes = el.childNodes;
+      el = document.createElement('div');
+      for (i = childNodes.length - 1; i >= 0; i--) {
+        el.insertBefore(childNodes[i], el.firstChild);
+      }
+      return el;
+    }
   },
 
   removeScripts = function(el) {
-    var node, i;
-    for (i = 0; i < el.childNodes.length; i++) {
-      node = el.childNodes[i];
-      if (node.tagName == 'SCRIPT') {
-        node.parentNode.removeChild(node);
+    var i, child;
+    for (i = 0; i < el.children.length; i++) {
+      child = el.children[i];
+      if (child.tagName == 'SCRIPT') {
+        child.parentNode.removeChild(child);
       }
     }
   },

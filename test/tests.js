@@ -275,41 +275,37 @@ test('render nested collections', function(assert) {
       <strong>Sandman</strong>
     </li><template></template>
   </ul>
-</div><template></template>
-</div>`, 'renders elements for every entry');
+</div><template></template></div>`, 'renders elements for every entry');
 });
 
 test('if statements', function(assert) {
   var
     object = {},
-    el = render('super-hero.el', object);
+    el = document.createElement('div');
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing when key is missing');
+  el.appendChild(render('super-hero.el', object));
+
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing when key is missing');
 
   object.selected = null;
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing when expression is falsy');
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing when expression is falsy');
 
   object.selected = {name: 'Batman', description: 'Unlike most superheroes, Batman does not possess any inhuman superpowers. He does, however, possess a genius-level intellect, is a peerless martial artist, and his vast wealth affords him an extraordinary arsenal of weaponry and equipment.'};
 
   assert.equal(el.outerHTML, `<div><div>
   <h2>Batman</h2>
   <p>Unlike most superheroes, Batman does not possess any inhuman superpowers. He does, however, possess a genius-level intellect, is a peerless martial artist, and his vast wealth affords him an extraordinary arsenal of weaponry and equipment.</p>
-</div><template></template>
-</div>`, 'renders elements when expression is truthy');
+</div><template></template></div>`, 'renders elements when expression is truthy');
 
   object.selected.description = 'He is a pancake! #justkiddingbruce <3';
 
   assert.equal(el.outerHTML, `<div><div>
   <h2>Batman</h2>
   <p>He is a pancake! #justkiddingbruce &lt;3</p>
-</div><template></template>
-</div>`, 'renders elements when expression is truthy');
+</div><template></template></div>`, 'renders elements when expression is truthy');
 
   object.selected = null;
 
-  assert.equal(el.outerHTML, `<div><template></template>
-</div>`, 'renders nothing again when setting value to falsy');
+  assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing again when setting value to falsy');
 });
