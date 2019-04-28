@@ -45,10 +45,10 @@ test('ignore non-existing keys', function(assert) {
   var el = render('<span>{ first_name }</span>');
   assert.equal(el.outerHTML, '<span></span>', 'results as empty text in output when no object given');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {first_name: 'Paul'});
+  var el = render('<span>{ first_name } {last_name }</span>', {first_name: 'Paul'});
   assert.equal(el.outerHTML, '<span>Paul </span>', 'results as empty text in output when key non-existent (1)');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {last_name: 'Engel'});
+  var el = render('<span>{ first_name } {last_name }</span>', {last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span> Engel</span>', 'results as empty text in output when key non-existent (2)');
 });
 
@@ -56,10 +56,10 @@ test('interpolate simple values', function(assert) {
   var el = render('<span>{ first_name }</span>', {first_name: 'Paul'});
   assert.equal(el.outerHTML, '<span>Paul</span>', 'interpolates single expression within a text node');
 
-  var el = render('<span>{ first_name } {last_name}</span>', {first_name: 'Paul', last_name: 'Engel'});
+  var el = render('<span>{ first_name } {last_name }</span>', {first_name: 'Paul', last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span>Paul Engel</span>', 'interpolates multiple expressions within a text node');
 
-  var el = render('<span>{ first_name } <strong>separator</strong> {last_name}</span>', {first_name: 'Paul', last_name: 'Engel'});
+  var el = render('<span>{ first_name } <strong>separator</strong> {last_name }</span>', {first_name: 'Paul', last_name: 'Engel'});
   assert.equal(el.outerHTML, '<span>Paul <strong>separator</strong> Engel</span>', 'respects nested nodes');
 });
 
@@ -67,17 +67,17 @@ test('interpolate with plain JS', function(assert) {
   var el = render('<span>{ amount * price }</span>', {amount: 1982, price: 1.8});
   assert.equal(el.outerHTML, '<span>3567.6</span>', 'allows mathematic operations within expressions');
 
-  var el = render('<span>{ first_name } {last_name} ({ tags.join(\', \') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
+  var el = render('<span>{ first_name } {last_name } ({ tags.join(\', \') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby, elixir)</span>', 'allows function invocations within expressions');
 
-  var el = render('<span>{ first_name } {last_name} ({ tags.join(\'{, }\') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
+  var el = render('<span>{ first_name } {last_name } ({ tags.join(\'{, }\') })</span>', {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']});
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby{, }elixir)</span>', 'does not crash when containing curly braces');
 });
 
 test('bind to objects', function(assert) {
   var
     object = {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']},
-    el = render('<span>{ first_name } {last_name}</span>', object);
+    el = render('<span>{ first_name } {last_name }</span>', object);
 
   object.first_name = 'Bruce';
   assert.equal(el.outerHTML, '<span>Bruce Engel</span>', 'updates dependent text node after first change');
