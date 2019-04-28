@@ -86,6 +86,23 @@ test('bind to objects', function(assert) {
   assert.equal(el.outerHTML, '<span>Bruce Wayne</span>', 'updates dependent text node after succeeding change');
 });
 
+test('bind to nested objects', function(assert) {
+  var
+    object = {},
+    el = render('<span>{ selected.hero.name }</span>', object);
+
+  assert.equal(el.outerHTML, '<span></span>', 'results as empty text in output when no nested object given');
+
+  object.selected = {hero: {name: 'Bruce Wayne'}};
+  assert.equal(el.outerHTML, '<span>Bruce Wayne</span>', 'updates dependent text node after setting a nested object');
+
+  object.selected.hero.name = 'Clark Kent';
+  assert.equal(el.outerHTML, '<span>Clark Kent</span>', 'updates dependent text node after changing a nested value');
+
+  object.selected.hero = {};
+  assert.equal(el.outerHTML, '<span></span>', 'results as empty text when nested value is empty');
+});
+
 test('bind to arrays', function(assert) {
   var
     object = {tags: ['ruby', 'elixir', 'javascript']},

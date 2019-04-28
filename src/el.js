@@ -405,18 +405,22 @@ ElementJS = (function() {
   trigger = function(object, path) {
     var
       elid = object[__elid__],
-      objectBindings, nodes,
+      objectBindings = (bindings[elid] || {}),
+      regexp = new RegExp('^' + path + '(\.|$)'),
+      bindedPath, nodes,
       i, node;
 
-    objectBindings = bindings[elid] || {};
-    nodes = objectBindings[path] || [];
-
-    for (i = 0; i < nodes.length; i++) {
-      node = nodes[i];
-      if (node.tagName == 'TEMPLATE') {
-        evaluateTemplate(object, node);
-      } else {
-        evaluateString(object, node, node[__template__]);
+    for (bindedPath in objectBindings) {
+      if (bindedPath.match(regexp)) {
+        nodes = objectBindings[bindedPath];
+        for (i = 0; i < nodes.length; i++) {
+          node = nodes[i];
+          if (node.tagName == 'TEMPLATE') {
+            evaluateTemplate(object, node);
+          } else {
+            evaluateString(object, node, node[__template__]);
+          }
+        }
       }
     }
   },
