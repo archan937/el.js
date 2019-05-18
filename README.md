@@ -16,6 +16,13 @@ Just include el.js:
 
 The `el.js` library is tested with [QUnit](http://qunitjs.com). Check out the test results at [https://archan937.github.io/el.js/test/index.html](https://archan937.github.io/el.js/test/index.html).
 
+### Running tests locally
+
+In order to run tests on your own computer, please start up a web server for the current directory (e.g. `ruby -run -ehttpd . -p8000`)
+and open `http://<localhost>/test` in your browser (e.g. `http://localhost:8000/test`).
+
+Here is a list of HTTP static server one-liners: [https://gist.github.com/willurd/5720255](https://gist.github.com/willurd/5720255).
+
 ## Usage
 
 To render data-binded templates, you have to use either of the following functions:
