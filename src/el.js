@@ -200,9 +200,16 @@ ElementJS = (function() {
         }
         return siblings;
       }()),
-      renderObject = function(object, tag) {
-        var el = render(template, object, tag);
-        node.parentNode.insertBefore(el, node);
+      renderObject = function(object, tag, i) {
+        var
+          el = render(template, object, tag),
+          sibling = node;
+
+        if (typeof(i) != 'undefined') {
+          sibling = node.parentNode.children[i];
+        }
+
+        node.parentNode.insertBefore(el, sibling);
       },
       value = evaluateExpression(object, node, node[__for__] || node[__if__]),
       valueTags, i, sibling, tag;
@@ -227,7 +234,7 @@ ElementJS = (function() {
         object = value[i];
         tag = elid + ':' + object[__elid__];
         if (siblingTags.indexOf(tag) == -1) {
-          renderObject(object, tag);
+          renderObject(object, tag, i);
         }
       }
     } else {

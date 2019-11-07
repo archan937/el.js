@@ -363,6 +363,39 @@ test('tables and extensive javascript', function(assert) {
   </tr><template></template>
 </tbody></table>`, 'renders row for an added array item');
 
+  object.super_heroes.unshift({name: 'Spider-Man', created_at: 1573163460});
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Spider-Man</td>
+    <td>7-11-2019 22:51:00</td>
+  </tr><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><tr>
+    <td>Superman</td>
+    <td>28-4-2019 12:17:22</td>
+  </tr><template></template>
+</tbody></table>`, 'renders row at index 0 when unshifting');
+
+  object.super_heroes.splice(1, 0, {name: 'Iron-Man', created_at: 1573166588});
+
+  assert.equal(el.outerHTML, `<table>
+  <tbody><tr>
+    <td>Spider-Man</td>
+    <td>7-11-2019 22:51:00</td>
+  </tr><tr>
+    <td>Iron-Man</td>
+    <td>7-11-2019 23:43:08</td>
+  </tr><tr>
+    <td>Batman</td>
+    <td>28-4-2019 12:17:19</td>
+  </tr><tr>
+    <td>Superman</td>
+    <td>28-4-2019 12:17:22</td>
+  </tr><template></template>
+</tbody></table>`, 'renders row at index n when inserting');
+
   object.super_heroes = null;
 
   assert.equal(el.outerHTML, `<table>
