@@ -1,13 +1,13 @@
 var
 
 // *
-// * el.js 0.1.0 (Uncompressed)
+// * el.js 0.1.1 (Uncompressed)
 // * A straightforward and lightweight Javascript library for data-binded template rendering.
 // *
 // * (c) 2019 Paul Engel
 // * el.js is licensed under MIT license
 // *
-// * $Date: 2019-04-29 01:03:11 +0100 (Mon, 29 April 2019) $
+// * $Date: 2019-11-07 23:53:48 +0100 (Thu, 07 November 2019) $
 // *
 
 ElementJS = (function() {
@@ -200,9 +200,16 @@ ElementJS = (function() {
         }
         return siblings;
       }()),
-      renderObject = function(object, tag) {
-        var el = render(template, object, tag);
-        node.parentNode.insertBefore(el, node);
+      renderObject = function(object, tag, i) {
+        var
+          el = render(template, object, tag),
+          sibling = node;
+
+        if (typeof(i) != 'undefined') {
+          sibling = node.parentNode.children[i];
+        }
+
+        node.parentNode.insertBefore(el, sibling);
       },
       value = evaluateExpression(object, node, node[__for__] || node[__if__]),
       valueTags, i, sibling, tag;
@@ -227,7 +234,7 @@ ElementJS = (function() {
         object = value[i];
         tag = elid + ':' + object[__elid__];
         if (siblingTags.indexOf(tag) == -1) {
-          renderObject(object, tag);
+          renderObject(object, tag, i);
         }
       }
     } else {
