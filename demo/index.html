@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>el.js - Demo /index</title>
+    <script type="text/javascript" src="../src/el.js"></script>
+    <script type="text/javascript" src="./demo.js"></script>
+  </head>
+  <body>
+    <h2>
+      Super heroes
+    </h2>
+    <ul>
+      <template>
+        <li for="{ super_heroes }">
+          { name } ({ alter_ego })
+        </li>
+      </template>
+    </ul>
+    <h2>
+      Groups
+    </h2>
+    <template>
+      <div for="{ groups }">
+        <h2>
+          { name }
+        </h2>
+        <ul>
+          <li for="{ characters }">
+            { name }
+          </li>
+        </ul>
+      </div>
+    </template>
+  </body>
+</html>

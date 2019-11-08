@@ -17,6 +17,7 @@ ElementJS = (function() {
     templates = {},
     bindings = {},
     elid = 1,
+    pageBinding,
 
     __elid__     = '__elid__'    ,
     __for__      = '__for__'     ,
@@ -447,9 +448,34 @@ ElementJS = (function() {
   ready(init);
 
   return {
+    renderPage: function(object) {
+      if (pageBinding) {
+        Object.assign(pageBinding, object);
+      } else {
+        pageBinding = object;
+        ready(function() {
+          var
+            templates = document.getElementsByTagName('TEMPLATE'),
+            template, i, html, el;
+
+          for (i = 0; i < templates.length; i++) {
+            template = templates[i];
+            html = template.innerHTML;
+            if (template.parentNode.children.length > 1) {
+              html = '<div>' + html + '</div>';
+            }
+            el = render(html, pageBinding);
+            template.parentNode.insertBefore(el, template);
+            template.parentNode.removeChild(template);
+          }
+        });
+      }
+      return pageBinding;
+    },
     render: render
   };
 }()),
 
 El = ElementJS;
+document.render = El.renderPage;
 document.renderElement = El.render;
