@@ -434,13 +434,17 @@ ElementJS = (function() {
 
   template = function(node) {
     return node.tagName == 'TEMPLATE' ? node.childNodes[0].outerHTML : node.nodeValue;
+  },
+
+  ready = function(fn) {
+    if ((document.readyState == 'interactive') || (document.readyState == 'complete')) {
+      fn();
+    } else {
+      document.addEventListener('DOMContentLoaded', fn);
+    }
   };
 
-  if ((document.readyState == 'interactive') || (document.readyState == 'complete')) {
-    init();
-  } else {
-    document.addEventListener('DOMContentLoaded', init);
-  }
+  ready(init);
 
   return {
     render: render
