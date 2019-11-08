@@ -7,7 +7,7 @@ var
 // * (c) 2019 Paul Engel
 // * el.js is licensed under MIT license
 // *
-// * $Date: 2019-11-09 00:31:30 +0100 (Sat, 09 November 2019) $
+// * $Date: 2019-11-09 10:15:01 +0100 (Sat, 09 November 2019) $
 // *
 
 ElementJS = (function() {
@@ -17,7 +17,7 @@ ElementJS = (function() {
     templates = {},
     bindings = {},
     elid = 1,
-    pageBinding,
+    pageBinding = {},
 
     __elid__     = '__elid__'    ,
     __for__      = '__for__'     ,
@@ -458,10 +458,8 @@ ElementJS = (function() {
 
   return {
     renderPage: function(binding) {
-      if (pageBinding) {
-        Object.assign(pageBinding, binding);
-      } else {
-        pageBinding = binding;
+      Object.assign(pageBinding, binding);
+      if (!pageBinding[__elid__]) {
         ready(function() {
           var
             templates = document.getElementsByTagName('TEMPLATE'),
@@ -481,10 +479,12 @@ ElementJS = (function() {
       }
       return pageBinding;
     },
-    render: render
+    render: render,
+    pageBinding: pageBinding
   };
 }()),
 
 El = ElementJS;
 document.render = El.renderPage;
 document.renderElement = El.render;
+document.binding = El.pageBinding;

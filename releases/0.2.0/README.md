@@ -50,7 +50,19 @@ They require the following argument:
 
 1. the `binding` - an object value
 
-This function will use the entire page as template using the passed binding. No need for separate template elements.
+This function will use the entire page as template using the passed binding. No need for separate template elements!
+
+The return value is the binded object used for page rendering.
+
+#### Getting the page binding
+
+After having rendered the entire page, you can access the page binding using one of the following properties:
+
+* `ElementJS.pageBinding` - the original property
+* `El.pageBinding` - an alias property
+* `document.binding` - an alias property
+
+The return value is the binded object.
 
 #### An example
 
@@ -84,7 +96,7 @@ This function will use the entire page as template using the passed binding. No 
 </html>
 ```
 
-Convenient, huh? You can also see `document.render()` in action: [https://archan937.github.io/el.js/demo/index.html](https://archan937.github.io/el.js/demo/index.html) 😎😎😎
+Convenient, huh? You can also see it in action: [https://archan937.github.io/el.js/demo/index.html](https://archan937.github.io/el.js/demo/index.html) 😎😎😎
 
 ### Basic interpolation
 
