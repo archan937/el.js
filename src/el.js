@@ -110,7 +110,7 @@ ElementJS = (function() {
     for (i = 0; i < el.children.length; i++) {
       child = el.children[i];
       if (child.tagName == 'SCRIPT') {
-        child.parentNode.removeChild(child);
+        deleteNode(child);
       }
     }
   },
@@ -263,10 +263,6 @@ ElementJS = (function() {
     }
   },
 
-  deleteNode = function(node) {
-    node.parentNode.removeChild(node);
-  },
-
   evaluateString = function(binding, node, template) {
     template || (template = node.nodeValue);
 
@@ -335,6 +331,10 @@ ElementJS = (function() {
     } catch (e) {
       return '';
     }
+  },
+
+  deleteNode = function(node) {
+    node.parentNode.removeChild(node);
   },
 
   bind = function(node, binding, path, value, trail) {
@@ -475,7 +475,7 @@ ElementJS = (function() {
             }
             el = render(html, pageBinding);
             template.parentNode.insertBefore(el, template);
-            template.parentNode.removeChild(template);
+            deleteNode(template);
           }
         });
       }
