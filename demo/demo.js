@@ -1,12 +1,14 @@
 Demo = (function() {
+  'use strict';
+
   var
-    object = {
-      super_heroes: [],
-      groups: []
-    },
+    binding = document.binding,
 
   init = function() {
-    document.render(object);
+    document.render({
+      super_heroes: [],
+      groups: []
+    });
     update();
   },
 
@@ -29,7 +31,7 @@ Demo = (function() {
       ][i];
 
       if (item) {
-        object.super_heroes.push(item);
+        binding.super_heroes.push(item);
       }
 
       item = [
@@ -55,7 +57,7 @@ Demo = (function() {
       ][i];
 
       if (item) {
-        object.groups.push(item);
+        binding.groups.push(item);
       }
 
       update(i + 1);
