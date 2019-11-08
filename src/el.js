@@ -70,6 +70,9 @@ ElementJS = (function() {
   },
 
   setId = function(object) {
+    if (typeof(object) != 'object') {
+      return object;
+    }
     if (!object[__elid__]) {
       var id = 'el' + elid;
       Object.defineProperty(object, __elid__, {
@@ -302,22 +305,28 @@ ElementJS = (function() {
 
   evaluateExpression = function(binding, node, expression) {
     var
-      vars = ['var _'],
-      property, variable;
+      dot = '__d0t__',
+      vars = ['var _', dot + ' = binding'],
+      path, property, variable;
 
-    expression.replace(/(?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(path) {
-      path = path.replace(/\.\w+\(/, '').split('.');
-      property = path[0];
-      variable = property + ' = binding[\'' + property + '\'] || window[\'' + property + '\']';
-      if (vars.indexOf(variable) == -1) {
-        try {
-          eval('var ' + variable);
-          vars.push(variable);
-          register(node, binding, path.join('.'));
-          bind(node, binding, path);
-        } catch (e) {
-          // reserved word
+    expression = expression.replace(/((?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)|((^|\s)\.(\s|$)))/g, function(match) {
+      if (match.replace(/\s/g, '') == '.') {
+        return match.replace('.', dot);
+      } else {
+        path = match.replace(/\.\w+\(/, '').split('.');
+        property = path[0];
+        variable = property + ' = binding[\'' + property + '\'] || window[\'' + property + '\']';
+        if (vars.indexOf(variable) == -1) {
+          try {
+            eval('var ' + variable);
+            vars.push(variable);
+            register(node, binding, path.join('.'));
+            bind(node, binding, path);
+          } catch (e) {
+            // reserved word
+          }
         }
+        return match;
       }
     });
 

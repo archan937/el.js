@@ -151,6 +151,18 @@ test('<script type="text/element" src="..."></script> includes', function(assert
 </div>`, 'updates the element after changes');
 });
 
+test('render collections with primitive values', function(assert) {
+  var
+    object = {skills: ['ruby', 'javascript', 'elixir']},
+    el = render('<ul><li for="{ skills }">{ . }</li></ul>', object);
+
+  assert.equal(
+    el.outerHTML,
+    `<ul><li>ruby</li><li>javascript</li><li>elixir</li><template></template></ul>`,
+    'gets interpolated value using `.`'
+  );
+});
+
 test('render collections', function(assert) {
   var
     object = {super_heroes: [
