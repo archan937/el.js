@@ -61,7 +61,7 @@ ElementJS = (function() {
 
     div.appendChild(el);
     insertTemplates(div);
-    evaluateNode(div, binding);
+    renderNode(div, binding);
 
     el = (div.childNodes.length == 1) ? div.childNodes[0] : div;
     el[__tag__] = tag;
@@ -155,7 +155,7 @@ ElementJS = (function() {
     return template;
   },
 
-  evaluateNode = function(el, binding) {
+  renderNode = function(el, binding) {
     var
       walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
         acceptNode: function(node) {
@@ -171,21 +171,21 @@ ElementJS = (function() {
     while (node = walker.nextNode()) {
       if (node.nodeType == Node.ELEMENT_NODE) {
         if (node[__for__] || node[__if__]) {
-          evaluateTemplate(binding, node);
+          evaluateNode(binding, node);
         } else {
           for (i = 0; i < node.attributes.length; i++) {
             attr = node.attributes[i];
-            evaluateString(binding, attr);
+            evaluateTemplate(binding, attr);
           }
         }
       }
       if (node.nodeType == Node.TEXT_NODE) {
-        evaluateString(binding, node);
+        evaluateTemplate(binding, node);
       }
     }
   },
 
-  evaluateTemplate = function(binding, node) {
+  evaluateNode = function(binding, node) {
     var
       elid = setId(node),
       template = node.childNodes[0].outerHTML,
@@ -263,7 +263,7 @@ ElementJS = (function() {
     }
   },
 
-  evaluateString = function(binding, node, template) {
+  evaluateTemplate = function(binding, node, template) {
     template || (template = node.nodeValue);
 
     if (template.indexOf('{') != -1) {
@@ -433,9 +433,9 @@ ElementJS = (function() {
         for (i = 0; i < nodes.length; i++) {
           node = nodes[i];
           if (node.tagName == 'TEMPLATE') {
-            evaluateTemplate(binding, node);
+            evaluateNode(binding, node);
           } else {
-            evaluateString(binding, node, node[__template__]);
+            evaluateTemplate(binding, node, node[__template__]);
           }
         }
       }
