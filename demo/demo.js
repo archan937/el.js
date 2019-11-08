@@ -1,18 +1,18 @@
 Demo = (function() {
   var
-    state = {
+    object = {
       super_heroes: [],
       groups: []
     },
 
   init = function() {
-    document.render(state);
+    document.render(object);
     update();
   },
 
   update = function(i) {
     setTimeout(function() {
-      var object;
+      var item;
 
       if (i == 5) {
         return;
@@ -20,7 +20,7 @@ Demo = (function() {
 
       i = (i || 0);
 
-      object = [
+      item = [
         {name: 'Superman', alter_ego: 'Clark Joseph Kent'},
         {name: 'Batman', alter_ego: 'Bruce Wayne'},
         {name: 'Spider-Man', alter_ego: 'Peter Benjamin Parker'},
@@ -28,11 +28,11 @@ Demo = (function() {
         {name: 'Hulk', alter_ego: 'Robert Bruce Banner'}
       ][i];
 
-      if (object) {
-        state.super_heroes.push(object);
+      if (item) {
+        object.super_heroes.push(item);
       }
 
-      object = [
+      item = [
         {
           name: 'Super heroes',
           characters: [
@@ -54,8 +54,8 @@ Demo = (function() {
         }
       ][i];
 
-      if (object) {
-        state.groups.push(object);
+      if (item) {
+        object.groups.push(item);
       }
 
       update(i + 1);

@@ -45,11 +45,11 @@ ElementJS = (function() {
     }
   },
 
-  render = function(template, object, tag) {
+  render = function(template, binding, tag) {
     template || (template = '');
-    object || (object = {});
+    binding || (binding = {});
 
-    setId(object);
+    setId(binding);
 
     if (templates[template]) {
       template = templates[template];
@@ -61,7 +61,7 @@ ElementJS = (function() {
 
     div.appendChild(el);
     insertTemplates(div);
-    evaluateNode(div, object);
+    evaluateNode(div, binding);
 
     el = (div.childNodes.length == 1) ? div.childNodes[0] : div;
     el[__tag__] = tag;
@@ -152,7 +152,7 @@ ElementJS = (function() {
     return template;
   },
 
-  evaluateNode = function(el, object) {
+  evaluateNode = function(el, binding) {
     var
       walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
         acceptNode: function(node) {
@@ -168,21 +168,21 @@ ElementJS = (function() {
     while (node = walker.nextNode()) {
       if (node.nodeType == Node.ELEMENT_NODE) {
         if (node[__for__] || node[__if__]) {
-          evaluateTemplate(object, node);
+          evaluateTemplate(binding, node);
         } else {
           for (i = 0; i < node.attributes.length; i++) {
             attr = node.attributes[i];
-            evaluateString(object, attr);
+            evaluateString(binding, attr);
           }
         }
       }
       if (node.nodeType == Node.TEXT_NODE) {
-        evaluateString(object, node);
+        evaluateString(binding, node);
       }
     }
   },
 
-  evaluateTemplate = function(object, node) {
+  evaluateTemplate = function(binding, node) {
     var
       elid = setId(node),
       template = node.childNodes[0].outerHTML,
@@ -201,9 +201,9 @@ ElementJS = (function() {
         }
         return siblings;
       }()),
-      renderObject = function(object, tag, i) {
+      renderEl = function(binding, tag, i) {
         var
-          el = render(template, object, tag),
+          el = render(template, binding, tag),
           sibling = node;
 
         if (typeof(i) != 'undefined') {
@@ -212,7 +212,7 @@ ElementJS = (function() {
 
         node.parentNode.insertBefore(el, sibling);
       },
-      value = evaluateExpression(object, node, node[__for__] || node[__if__]),
+      value = evaluateExpression(binding, node, node[__for__] || node[__if__]),
       valueTags, i, sibling, tag;
 
     if (node[__for__]) {
@@ -232,14 +232,14 @@ ElementJS = (function() {
       }
 
       for (i = 0; i < value.length; i++) {
-        object = value[i];
-        tag = elid + ':' + object[__elid__];
+        binding = value[i];
+        tag = elid + ':' + binding[__elid__];
         if (siblingTags.indexOf(tag) == -1) {
-          renderObject(object, tag, i);
+          renderEl(binding, tag, i);
         }
       }
     } else {
-      tag = elid + ':' + setId(object);
+      tag = elid + ':' + setId(binding);
       if (value) {
         for (i = 0; i < siblings.length; i++) {
           sibling = siblings[i];
@@ -247,7 +247,7 @@ ElementJS = (function() {
             return;
           }
         }
-        renderObject(object, tag);
+        renderEl(binding, tag);
       } else {
         for (i = 0; i < siblings.length; i++) {
           sibling = siblings[i];
@@ -264,7 +264,7 @@ ElementJS = (function() {
     node.parentNode.removeChild(node);
   },
 
-  evaluateString = function(object, node, template) {
+  evaluateString = function(binding, node, template) {
     template || (template = node.nodeValue);
 
     if (template.indexOf('{') != -1) {
@@ -284,7 +284,7 @@ ElementJS = (function() {
         } else if (c == '}') {
           count--;
           if (count == 0) {
-            result += evaluateExpression(object, node, buffer.replace(/(^\s*|\s*$)/g, ''));
+            result += evaluateExpression(binding, node, buffer.replace(/(^\s*|\s*$)/g, ''));
             buffer = '';
           } else {
             buffer += c;
@@ -300,7 +300,7 @@ ElementJS = (function() {
     }
   },
 
-  evaluateExpression = function(object, node, expression) {
+  evaluateExpression = function(binding, node, expression) {
     var
       vars = ['var _'],
       property, variable;
@@ -308,13 +308,13 @@ ElementJS = (function() {
     expression.replace(/(?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)/g, function(path) {
       path = path.replace(/\.\w+\(/, '').split('.');
       property = path[0];
-      variable = property + ' = object[\'' + property + '\'] || window[\'' + property + '\']';
+      variable = property + ' = binding[\'' + property + '\'] || window[\'' + property + '\']';
       if (vars.indexOf(variable) == -1) {
         try {
           eval('var ' + variable);
           vars.push(variable);
-          register(node, object, path.join('.'));
-          bind(node, object, path);
+          register(node, binding, path.join('.'));
+          bind(node, binding, path);
         } catch (e) {
           // reserved word
         }
@@ -328,17 +328,17 @@ ElementJS = (function() {
     }
   },
 
-  bind = function(node, object, path, value, trail) {
+  bind = function(node, binding, path, value, trail) {
     if (arguments.length == 3) {
-      value = object;
+      value = binding;
       trail = [];
     }
 
     switch (Object.prototype.toString.call(value)) {
       case '[object Object]':
-        return bindObject(node, object, path, value, trail);
+        return bindObject(node, binding, path, value, trail);
       case '[object Array]':
-        return bindArray(node, object, path, value, trail);
+        return bindArray(node, binding, path, value, trail);
       default:
         return value;
     }
@@ -396,9 +396,9 @@ ElementJS = (function() {
     });
   },
 
-  register = function(node, object, path) {
+  register = function(node, binding, path) {
     var
-      elid = object[__elid__],
+      elid = binding[__elid__],
       objectBindings, nodes;
 
     objectBindings = bindings[elid] || (bindings[elid] = {});
@@ -410,9 +410,9 @@ ElementJS = (function() {
     }
   },
 
-  trigger = function(object, path) {
+  trigger = function(binding, path) {
     var
-      elid = object[__elid__],
+      elid = binding[__elid__],
       objectBindings = (bindings[elid] || {}),
       regexp = new RegExp('^' + path + '(\.|$)'),
       bindedPath, nodes,
@@ -424,9 +424,9 @@ ElementJS = (function() {
         for (i = 0; i < nodes.length; i++) {
           node = nodes[i];
           if (node.tagName == 'TEMPLATE') {
-            evaluateTemplate(object, node);
+            evaluateTemplate(binding, node);
           } else {
-            evaluateString(object, node, node[__template__]);
+            evaluateString(binding, node, node[__template__]);
           }
         }
       }
@@ -448,11 +448,11 @@ ElementJS = (function() {
   ready(init);
 
   return {
-    renderPage: function(object) {
+    renderPage: function(binding) {
       if (pageBinding) {
-        Object.assign(pageBinding, object);
+        Object.assign(pageBinding, binding);
       } else {
-        pageBinding = object;
+        pageBinding = binding;
         ready(function() {
           var
             templates = document.getElementsByTagName('TEMPLATE'),
