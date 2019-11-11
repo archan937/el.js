@@ -301,8 +301,9 @@ ElementJS = (function() {
 
   evaluateExpression = function(binding, node, expression) {
     var
-      dot = '__d0t__',
-      vars = ['var _', dot + ' = binding'],
+      vars = [],
+      dot = '__dot__',
+      val = '__val__',
       path, property, variable;
 
     expression = expression.replace(/((?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)|((^|\s)\.(\s|$)))/g, function(match) {
@@ -311,7 +312,7 @@ ElementJS = (function() {
       } else {
         path = match.replace(/\.\w+\(/, '').split('.');
         property = path[0];
-        variable = property + ' = binding[\'' + property + '\'] || window[\'' + property + '\']';
+        variable = property + ' = resolveValue(binding, \'' + property + '\')';
         if (vars.indexOf(variable) == -1) {
           try {
             eval('var ' + variable);
@@ -326,11 +327,27 @@ ElementJS = (function() {
       }
     });
 
+    vars.push(dot + ' = binding');
+
     try {
-      return eval(vars.join(', ') + '; _ = ' + expression + '; (typeof(_) == \'undefined\') ? \'\' : _');
+      return eval('var ' + vars.join(', ') + ', ' + val + ' = ' + expression + '; (typeof(' + val + ') == \'undefined\') ? \'\' : ' + val + ';');
     } catch (e) {
       return '';
     }
+  },
+
+  resolveValue = function(binding, property) {
+    var
+      bindings = [binding, window],
+      i, value;
+
+    for (i = 0; i < bindings.length - 1; i++) {
+      if (typeof(value) == 'undefined') {
+        value = bindings[i][property];
+      }
+    }
+
+    return value;
   },
 
   deleteNode = function(node) {
