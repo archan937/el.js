@@ -304,7 +304,8 @@ test('render nested collections', function(assert) {
       <strong>Sandman</strong>
     </li><template></template>
   </ul>
-</div><template></template></div>`, 'renders elements for every entry');
+</div><template></template>
+</div>`, 'renders elements for every entry');
 });
 
 test('if statements', function(assert) {

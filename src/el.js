@@ -87,14 +87,15 @@ ElementJS = (function() {
   createElement = function(template) {
     var
       el = document.createElement('template'),
-      childNodes, i;
+      firstChild, childNodes, i;
 
     el.innerHTML = template;
     el = el.content;
     removeScripts(el);
+    firstChild = el.children[0];
 
-    if (el.children.length == 1) {
-      return el.children[0];
+    if ((el.children.length == 1) && !firstChild.getAttribute('for')) {
+      return firstChild;
     } else {
       childNodes = el.childNodes;
       el = document.createElement('div');
