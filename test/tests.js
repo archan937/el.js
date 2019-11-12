@@ -74,6 +74,34 @@ test('interpolate with plain JS', function(assert) {
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby{, }elixir)</span>', 'does not crash when containing curly braces');
 });
 
+test('interpolate with the notion of scoping', function(assert) {
+  var
+    object = {name: 'root'},
+    el = render(`<div for="{ one }">
+  { name }
+</div>`, object);
+
+  object.one = [{}];
+  assert.equal(el.outerHTML, `<div><div>
+  root
+</div><template></template></div>`, 'uses parent binding as fallback');
+
+  object.name = 'r00t';
+  assert.equal(el.outerHTML, `<div><div>
+  r00t
+</div><template></template></div>`, 'updates whenever parent binding has changed');
+
+  object.one[0].name = 'one';
+  assert.equal(el.outerHTML, `<div><div>
+  one
+</div><template></template></div>`, 'updates whenever missing property gets defined in own binding');
+
+//   delete object.one[0].name;
+//   assert.equal(el.outerHTML, `<div><div>
+//   r00t
+// </div><template></template></div>`, 'uses parent binding after deleting property in own binding again');
+});
+
 test('bind to objects', function(assert) {
   var
     object = {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']},
