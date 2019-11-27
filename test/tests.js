@@ -76,36 +76,82 @@ test('interpolate with plain JS', function(assert) {
 
 test('interpolate with the notion of scoping', function(assert) {
   var
-    object = {name: 'root'},
     el = render(`<div for="{ one }">
-  { name }
-</div>`, object);
+{ name }
+</div>`, {name: 'root'}),
+    object = el.binding;
 
   object.one = [{}];
   assert.equal(el.outerHTML, `<div><div>
-  root
+root
 </div><template></template></div>`, 'uses parent binding as fallback');
+
+  object.one.push({});
+  assert.equal(el.outerHTML, `<div><div>
+root
+</div><div>
+root
+</div><template></template></div>`, 'uses parent binding as fallback for every following item');
 
   object.name = 'r00t';
   assert.equal(el.outerHTML, `<div><div>
-  r00t
+r00t
+</div><div>
+r00t
 </div><template></template></div>`, 'updates whenever parent binding has changed');
 
   object.one[0].name = 'one';
   assert.equal(el.outerHTML, `<div><div>
-  one
+one
+</div><div>
+r00t
 </div><template></template></div>`, 'updates whenever missing property gets defined in own binding');
 
-//   delete object.one[0].name;
-//   assert.equal(el.outerHTML, `<div><div>
-//   r00t
-// </div><template></template></div>`, 'uses parent binding after deleting property in own binding again');
+  object.one.push({});
+  assert.equal(el.outerHTML, `<div><div>
+one
+</div><div>
+r00t
+</div><div>
+r00t
+</div><template></template></div>`, 'uses parent binding as fallback for every following item');
+
+  delete object.one[0].name;
+  assert.equal(el.outerHTML, `<div><div>
+r00t
+</div><div>
+r00t
+</div><div>
+r00t
+</div><template></template></div>`, 'uses parent binding after deleting property in own binding again');
+
+  delete object.name;
+  assert.equal(el.outerHTML, `<div><div>
+
+</div><div>
+
+</div><div>
+
+</div><template></template></div>`, 'is empty after deleting property in parent binding');
+});
+
+test('provide `el.binding`', function(assert) {
+  var
+    el = render('{ first_name }'),
+    object = el.binding;
+
+  object.first_name = 'Bruce';
+  assert.equal(el.outerHTML, '<div>Bruce</div>', 'updates its HTML after changing the binding');
 });
 
 test('bind to objects', function(assert) {
   var
-    object = {first_name: 'Paul', last_name: 'Engel', tags: ['ruby', 'elixir']},
-    el = render('<span>{ first_name } {last_name }</span>', object);
+    el = render('<span>{ first_name } {last_name }</span>', {
+      first_name: 'Paul',
+      last_name: 'Engel',
+      tags: ['ruby', 'elixir']
+    }),
+    object = el.binding;
 
   object.first_name = 'Bruce';
   assert.equal(el.outerHTML, '<span>Bruce Engel</span>', 'updates dependent text node after first change');
@@ -116,8 +162,8 @@ test('bind to objects', function(assert) {
 
 test('bind to nested objects', function(assert) {
   var
-    object = {},
-    el = render('<span>{ selected.hero.name }</span>', object);
+    el = render('<span>{ selected.hero.name }</span>', {}),
+    object = el.binding;
 
   assert.equal(el.outerHTML, '<span></span>', 'results as empty text in output when no nested object given');
 
@@ -133,8 +179,8 @@ test('bind to nested objects', function(assert) {
 
 test('bind to arrays', function(assert) {
   var
-    object = {tags: ['ruby', 'elixir', 'javascript']},
-    el = render('{ tags.join(\', \') }', object);
+    el = render('{ tags.join(\', \') }', {tags: ['ruby', 'elixir', 'javascript']}),
+    object = el.binding;
 
   object.tags.push('html');
   assert.equal(el.outerHTML, '<div>ruby, elixir, javascript, html</div>', 'updates when an item is added');
@@ -153,8 +199,8 @@ test('within attributes', function(assert) {
 
 test('<script type="text/element" src="..."></script> includes', function(assert) {
   var
-    object = {name: 'Paul Engel', skills: ['ruby', 'javascript', 'elixir']},
-    el = render('hello.el', object);
+    el = render('hello.el', {name: 'Paul Engel', skills: ['ruby', 'javascript', 'elixir']}),
+    object = el.binding;
 
   assert.equal(el.outerHTML, `<div><h1>Hello world!</h1>
 <p>
@@ -181,8 +227,8 @@ test('<script type="text/element" src="..."></script> includes', function(assert
 
 test('render collections with primitive values', function(assert) {
   var
-    object = {skills: ['ruby', 'javascript', 'elixir']},
-    el = render('<ul><li for="{ skills }">{ . }</li></ul>', object);
+    el = render('<ul><li for="{ skills }">{ . }</li></ul>', {skills: ['ruby', 'javascript', 'elixir']}),
+    object = el.binding;
 
   assert.equal(
     el.outerHTML,
@@ -193,14 +239,14 @@ test('render collections with primitive values', function(assert) {
 
 test('render collections', function(assert) {
   var
-    object = {super_heroes: [
+    el = render('super-heroes.el', {super_heroes: [
       {name: 'Superman', alter_ego: 'Clark Joseph Kent'},
       {name: 'Batman', alter_ego: 'Bruce Wayne'},
       {name: 'Spider-Man', alter_ego: 'Peter Benjamin Parker'},
       {name: 'Iron Man', alter_ego: 'Anthony Edward Stark'},
       {name: 'Hulk', alter_ego: 'Robert Bruce Banner'}
-    ]},
-    el = render('super-heroes.el', object);
+    ]}),
+    object = el.binding;
 
   assert.equal(el.outerHTML, `<div><h1>
   Super heroes
@@ -241,39 +287,39 @@ test('render collections', function(assert) {
 </ul>
 </div>`, 'updates elements after changing entries');
 
-  delete object.super_heroes[0];
-  delete object.super_heroes[2];
-
-  assert.equal(el.outerHTML, `<div><h1>
-  Super heroes
-</h1>
-<ul>
-  <li>
-    <strong>Batman</strong> (Bram Engel)
-  </li><li>
-    <strong>Spider-Man</strong> (Peter Benjamin Parker)
-  </li><li>
-    <strong>Hulk</strong> (Robert Bruce Banner)
-  </li><template></template>
-</ul>
-</div>`, 'removes elements after deleted entries');
-
-  object.super_heroes = [{name: 'Foo', alter_ego: 'Bar'}];
-
-  assert.equal(el.outerHTML, `<div><h1>
-  Super heroes
-</h1>
-<ul>
-  <li>
-    <strong>Foo</strong> (Bar)
-  </li><template></template>
-</ul>
-</div>`, 'replaces all elements after assigning new array');
+//   delete object.super_heroes[0];
+//   delete object.super_heroes[2];
+//
+//   assert.equal(el.outerHTML, `<div><h1>
+//   Super heroes
+// </h1>
+// <ul>
+//   <li>
+//     <strong>Batman</strong> (Bram Engel)
+//   </li><li>
+//     <strong>Spider-Man</strong> (Peter Benjamin Parker)
+//   </li><li>
+//     <strong>Hulk</strong> (Robert Bruce Banner)
+//   </li><template></template>
+// </ul>
+// </div>`, 'removes elements after deleted entries');
+//
+//   object.super_heroes = [{name: 'Foo', alter_ego: 'Bar'}];
+//
+//   assert.equal(el.outerHTML, `<div><h1>
+//   Super heroes
+// </h1>
+// <ul>
+//   <li>
+//     <strong>Foo</strong> (Bar)
+//   </li><template></template>
+// </ul>
+// </div>`, 'replaces all elements after assigning new array');
 });
 
 test('render nested collections', function(assert) {
   var
-    object = {
+    el = render('heroes-vs-villains.el', {
       groups: [
         {
           name: 'Super heroes',
@@ -295,8 +341,8 @@ test('render nested collections', function(assert) {
           ]
         }
       ]
-    },
-    el = render('heroes-vs-villains.el', object);
+    }),
+    object = el.binding;
 
   assert.equal(el.outerHTML, `<div><div>
   <h2>
@@ -338,10 +384,11 @@ test('render nested collections', function(assert) {
 
 test('if statements', function(assert) {
   var
-    object = {},
-    el = document.createElement('div');
+    el = document.createElement('div'),
+    renderedEl = render('super-hero.el', {}),
+    object = renderedEl.binding;
 
-  el.appendChild(render('super-hero.el', object));
+  el.appendChild(renderedEl);
 
   assert.equal(el.outerHTML, `<div><template></template></div>`, 'renders nothing when key is missing');
 
@@ -370,8 +417,8 @@ test('if statements', function(assert) {
 
 test('tables and extensive javascript', function(assert) {
   var
-    object = {},
-    el = render('table-of-heroes.el', object);
+    el = render('table-of-heroes.el', {}),
+    object = el.binding;
 
   assert.equal(el.outerHTML, `<table>
   <tbody><template></template>

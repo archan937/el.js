@@ -14,16 +14,16 @@ ElementJS = (function() {
   'use strict';
 
   var
+    elid = 1,
     templates = {},
     bindings = {},
-    elid = 1,
-    pageBinding = {},
 
-    __elid__     = '__elid__'    ,
-    __for__      = '__for__'     ,
-    __if__       = '__if__'      ,
-    __tag__      = '__tag__'     ,
-    __template__ = '__template__',
+    __binding__ = 'binding'    ,
+    __elid__    = '__elid__'   ,
+    __for__     = '__for__'    ,
+    __if__      = '__if__'     ,
+    __tag__     = '__tag__'    ,
+    __proxied__ = '__proxied__',
 
   init = function() {
     var
@@ -46,11 +46,9 @@ ElementJS = (function() {
   },
 
   render = function(template, binding, tag, parents) {
+    binding = bind(binding || {});
     template || (template = '');
-    binding || (binding = {});
     parents || (parents = []);
-
-    setId(binding);
 
     if (templates[template]) {
       template = templates[template];
@@ -62,27 +60,16 @@ ElementJS = (function() {
 
     div.appendChild(el);
     insertTemplates(div);
-    renderNode(div, binding, parents);
+    renderNode(binding, div, parents);
 
     el = (div.childNodes.length == 1) ? div.childNodes[0] : div;
     el[__tag__] = tag;
 
-    return el;
-  },
+    if (arguments.length <= 2) {
+      el[__binding__] = binding;
+    }
 
-  setId = function(object) {
-    if (typeof(object) != 'object') {
-      return object;
-    }
-    if (!object[__elid__]) {
-      var id = 'el' + elid;
-      Object.defineProperty(object, __elid__, {
-        enumerable: false,
-        value: id
-      });
-      elid++;
-    }
-    return object[__elid__];
+    return el;
   },
 
   createElement = function(template) {
@@ -107,14 +94,18 @@ ElementJS = (function() {
     }
   },
 
-  removeScripts = function(el) {
+  removeScripts = function(node) {
     var i, child;
-    for (i = 0; i < el.children.length; i++) {
-      child = el.children[i];
+    for (i = 0; i < node.children.length; i++) {
+      child = node.children[i];
       if (child.tagName == 'SCRIPT') {
         deleteNode(child);
       }
     }
+  },
+
+  deleteNode = function(node) {
+    node.parentNode.removeChild(node);
   },
 
   insertTemplates = function(el) {
@@ -157,7 +148,7 @@ ElementJS = (function() {
     return template;
   },
 
-  renderNode = function(el, binding, parents) {
+  renderNode = function(binding, el, parents) {
     var
       walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
         acceptNode: function(node) {
@@ -173,21 +164,27 @@ ElementJS = (function() {
     while (node = walker.nextNode()) {
       if (node.nodeType == Node.ELEMENT_NODE) {
         if (node[__for__] || node[__if__]) {
-          evaluateNode(binding, node, parents);
+          evaluateBlock(binding, node, parents);
         } else {
           for (i = 0; i < node.attributes.length; i++) {
             attr = node.attributes[i];
-            evaluateTemplate(binding, attr, null, parents);
+            evaluateNode(binding, attr, null, parents);
           }
         }
       }
       if (node.nodeType == Node.TEXT_NODE) {
-        evaluateTemplate(binding, node, null, parents);
+        evaluateNode(binding, node, null, parents);
       }
     }
   },
 
-  evaluateNode = function(binding, node, parents) {
+  evaluateBlock = function(binding, node, parents) {
+    if (!node.render) {
+      node.render = function() {
+        evaluateBlock(binding, node, parents);
+      };
+    }
+
     var
       elid = setId(node),
       template = node.childNodes[0].outerHTML,
@@ -211,11 +208,9 @@ ElementJS = (function() {
         var
           el = render(template, binding, tag, elParents),
           sibling = node;
-
         if (typeof(i) != 'undefined') {
           sibling = node.parentNode.children[i];
         }
-
         node.parentNode.insertBefore(el, sibling);
       },
       value = evaluateExpression(binding, node, node[__for__] || node[__if__], parents),
@@ -266,7 +261,13 @@ ElementJS = (function() {
     }
   },
 
-  evaluateTemplate = function(binding, node, template, parents) {
+  evaluateNode = function(binding, node, template, parents) {
+    if (!node.render) {
+      node.render = function() {
+        evaluateNode(binding, node, template, parents);
+      };
+    }
+
     template || (template = node.nodeValue);
 
     if (template.indexOf('{') != -1) {
@@ -304,7 +305,7 @@ ElementJS = (function() {
 
   evaluateExpression = function(binding, node, expression, parents) {
     var
-      bindings = [binding].concat(parents),
+      bindings = [binding].concat(parents).concat([window]),
       vars = [],
       dot = '__dot__',
       val = '__val__',
@@ -321,8 +322,7 @@ ElementJS = (function() {
           try {
             eval('var ' + variable);
             vars.push(variable);
-            register(node, binding, path.join('.'), parents);
-            bind(node, binding, path, null, null, parents);
+            bind(binding, node, path, parents);
           } catch (e) {
             // reserved word
           }
@@ -331,7 +331,6 @@ ElementJS = (function() {
       }
     });
 
-    bindings.push(window);
     vars.push(dot + ' = binding');
 
     try {
@@ -353,122 +352,155 @@ ElementJS = (function() {
     return value;
   },
 
-  deleteNode = function(node) {
-    node.parentNode.removeChild(node);
-  },
-
-  bind = function(node, binding, path, value, trail, parents) {
-    if ((arguments.length == 3) || (arguments.length == 6 && !trail)) {
-      value = binding;
-      trail = [];
-    }
-
-    switch (Object.prototype.toString.call(value)) {
-      case '[object Object]':
-        return bindObject(node, binding, path, value, trail, parents);
-      case '[object Array]':
-        return bindArray(node, binding, path, value, trail);
-      default:
-        return value;
-    }
-  },
-
-  bindObject = function(node, rootObject, path, object, trail, parents) {
-    if (!path.length) {
+  setId = function(object) {
+    if (typeof(object) != 'object') {
       return object;
     }
+    if (!object[__elid__]) {
+      object[__elid__] = 'el' + elid++;
+    }
+    return object[__elid__];
+  },
 
-    var property = path.shift();
-    trail.push(property);
-
-    [object].concat(parents).forEach(function(binding) {
+  bind = function(binding, node, path, parents) {
+    if (binding) {
       var
-        value = binding[property],
-        descriptor = Object.getOwnPropertyDescriptor(binding, property),
-        triggerPath;
+        inspect = Object.prototype.toString.call(binding);
 
-      value = bind(node, rootObject, path, value, trail, parents);
-
-      if (!descriptor || !descriptor.set) {
-        triggerPath = trail.join('.');
-        Object.defineProperty(binding, property, {
-          get: function() {
-            return value;
-          },
-          set: function(val) {
-            value = bind(node, rootObject, path, val, trail, parents);
-            trigger(rootObject, triggerPath, parents);
-            return true;
-          }
-        });
+      if (inspect.match(/\[object (Object|Array)\]/)) {
+        if (parents) {
+          parents.forEach(function(parent) {
+            bind(parent, node, path);
+          });
+        }
+        switch (inspect) {
+          case '[object Object]':
+            return bindObject(binding, node, path);
+            break;
+          case '[object Array]':
+            return bindArray(binding, node);
+            break;
+        }
       }
-    })
+    }
+
+    return binding;
+  },
+
+  bindObject = function(object, node, path) {
+    var
+      elid = setId(object),
+      property;
+
+    if (!object[__proxied__]) {
+      delete object[__elid__];
+
+      Object.keys(object).forEach(function(key) {
+        object[key] = bind(object[key]);
+      });
+
+      object = new Proxy(object, {
+        get: function(object, property) {
+          if (property == __proxied__) {
+            return true;
+          } else if (property == __elid__) {
+            return elid;
+          } else {
+            return object[property];
+          }
+        },
+        set: function(object, property, value) {
+          object[property] = bind(value);
+          trigger(elid, property);
+          return true;
+        },
+        deleteProperty: function(object, property) {
+          delete object[property];
+          trigger(elid, property);
+        }
+      });
+
+      elid = setId(object);
+    }
+
+    if (node && (property = path[0])) {
+      register(node, elid, property);
+      bind(object[property], node, path.slice(1));
+    }
 
     return object;
   },
 
-  bindArray = function(node, rootObject, _path, array, trail) {
+  bindArray = function(array, node) {
     var
-      triggerPath = trail.join('.');
+      elid = setId(array);
 
-    return new Proxy(array, {
-      set: function(array, index, val) {
-        array[index] = val;
-        trigger(rootObject, triggerPath);
-        return true;
-      },
-      deleteProperty: function(array, index) {
-        delete array[index];
-        for (var i = 0; i < array.length; i++) {
-          array[i] = array[(i < index) ? i : (i + 1)];
-        }
-        array.length--;
-        trigger(rootObject, triggerPath);
-      }
-    });
-  },
+    if (!array[__proxied__]) {
+      delete array[__elid__];
 
-  register = function(node, binding, path, parents) {
-    [binding].concat(parents).forEach(function(binding) {
-      var
-        elid = binding[__elid__],
-        objectBindings, nodes;
+      Object.keys(array).forEach(function(index) {
+        array[index] = bind(array[index]);
+      });
 
-      objectBindings = bindings[elid] || (bindings[elid] = {});
-      nodes = objectBindings[path] || (objectBindings[path] = []);
-
-      if (nodes.indexOf(node) == -1) {
-        nodes.push(node);
-        node[__template__] || (node[__template__] = template(node));
-      }
-    });
-  },
-
-  trigger = function(binding, path, parents) {
-    var
-      elid = binding[__elid__],
-      objectBindings = (bindings[elid] || {}),
-      regexp = new RegExp('^' + path + '(\.|$)'),
-      bindedPath, nodes,
-      i, node;
-
-    for (bindedPath in objectBindings) {
-      if (bindedPath.match(regexp)) {
-        nodes = objectBindings[bindedPath];
-        for (i = 0; i < nodes.length; i++) {
-          node = nodes[i];
-          if (node.tagName == 'TEMPLATE') {
-            evaluateNode(binding, node, parents);
+      array = new Proxy(array, {
+        get: function(array, index) {
+          if (index == __proxied__) {
+            return true;
+          } else if (index == __elid__) {
+            return elid;
           } else {
-            evaluateTemplate(binding, node, node[__template__], parents);
+            return array[index];
           }
+        },
+        set: function(array, index, value) {
+          array[index] = bind(value);
+          if (index != 'length') {
+            trigger(elid);
+          }
+          return true;
+        },
+        deleteProperty: function(array, index) {
+          delete array[index];
+          for (var i = 0; i < array.length; i++) {
+            array[i] = array[(i < index) ? i : (i + 1)];
+          }
+          array.length--;
+          trigger(elid);
         }
-      }
+      });
+
+      elid = setId(array);
+    }
+
+    if (node) {
+      register(node, elid);
+    }
+
+    return array;
+  },
+
+  register = function(node, elid, property) {
+    property || (property = null);
+    var
+      objectBindings = bindings[elid] || (bindings[elid] = {}),
+      propertyBindings = objectBindings[property] || (objectBindings[property] = []);
+
+    if (propertyBindings.indexOf(node) == -1) {
+      propertyBindings.push(node);
     }
   },
 
-  template = function(node) {
-    return node.tagName == 'TEMPLATE' ? node.childNodes[0].outerHTML : node.nodeValue;
+  trigger = function(elid, property) {
+    property || (property = null);
+    var
+      objectBindings = bindings[elid],
+      propertyBindings = objectBindings && objectBindings[property];
+
+    if (propertyBindings) {
+      propertyBindings.forEach(function(node) {
+        node.render();
+      });
+    }
   },
 
   ready = function(fn) {
@@ -477,31 +509,31 @@ ElementJS = (function() {
     } else {
       document.addEventListener('DOMContentLoaded', fn);
     }
-  };
+  },
+
+  pageBinding = bind({});
 
   ready(init);
 
   return {
     renderPage: function(binding) {
       Object.assign(pageBinding, binding);
-      if (!pageBinding[__elid__]) {
-        ready(function() {
-          var
-            templates = document.getElementsByTagName('TEMPLATE'),
-            template, i, html, el;
+      ready(function() {
+        var
+          templates = document.getElementsByTagName('TEMPLATE'),
+          template, i, html, el;
 
-          for (i = 0; i < templates.length; i++) {
-            template = templates[i];
-            html = template.innerHTML;
-            if (template.parentNode.children.length > 1) {
-              html = '<div>' + html + '</div>';
-            }
-            el = render(html, pageBinding);
-            template.parentNode.insertBefore(el, template);
-            deleteNode(template);
+        for (i = 0; i < templates.length; i++) {
+          template = templates[i];
+          html = template.innerHTML;
+          if (template.parentNode.children.length > 1) {
+            html = '<div>' + html + '</div>';
           }
-        });
-      }
+          el = render(html, pageBinding);
+          template.parentNode.insertBefore(el, template);
+          deleteNode(template);
+        }
+      });
       return pageBinding;
     },
     render: render,
@@ -510,6 +542,6 @@ ElementJS = (function() {
 }()),
 
 El = ElementJS;
-document.render = El.renderPage;
-document.renderElement = El.render;
-document.binding = El.pageBinding;
+document.render = ElementJS.renderPage;
+document.renderElement = ElementJS.render;
+document.binding = ElementJS.pageBinding;

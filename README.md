@@ -104,8 +104,8 @@ To interpolate values you can use `{ < property > }`:
 
 ```javascript
 var
-  object = {},
-  el = document.renderElement('<h1>Hello, { name }</h1>', object);
+  el = document.renderElement('<h1>Hello, { name }</h1>'),
+  object = el.binding;
 
 el.outerHTML; //=> <h1>Hello, </h1>
 
@@ -162,8 +162,8 @@ You can interpolate element attributes as follows:
 
 ```javascript
 var
-  object = {name: 'Javascript', slug: 'js'},
-  el = render('<a href="/category/{ slug }">{ name }</a>', object);
+  el = render('<a href="/category/{ slug }">{ name }</a>', {name: 'Javascript', slug: 'js'}),
+  object = el.binding;
 
 el.outerHTML; //=> <a href="/category/js">Javascript</a>
 ```
@@ -174,8 +174,8 @@ You can interpolate nested values using a "path of properties":
 
 ```javascript
 var
-  object = {},
-  el = document.renderElement('<h1>Hello, { user.name }</h1>', object);
+  el = document.renderElement('<h1>Hello, { user.name }</h1>'),
+  object = el.binding;
 
 el.outerHTML; //=> <h1>Hello, </h1>
 
@@ -199,8 +199,8 @@ In order to use it, you need to use the file name of the included template
 <script src="./el.js"></script>
 <script>
   var
-    object = {name: 'Paul'},
-    el = render('hello.el', object);
+    el = render('hello.el', {name: 'Paul'}),
+    object = el.binding;
 
 el.outerHTML; //=> <h1>Hello, my name is Paul</h1>
 </script>
@@ -222,8 +222,8 @@ _(in super-hero.el)_
 
 ```javascript
 var
-  object = {},
-  el = document.renderElement('super-hero.el', object);
+  el = document.renderElement('super-hero.el', {}),
+  object = el.binding;
 
 el.outerHTML;
 // <div><template></template></div>
@@ -258,8 +258,8 @@ _(in super-heroes.el)_
 
 ```javascript
 var
-  object = {},
-  el = document.renderElement('super-heroes.el', object);
+  el = document.renderElement('super-heroes.el'),
+  object = el.binding;
 
 el.outerHTML;
 // <div>
