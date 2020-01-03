@@ -310,10 +310,17 @@ ElementJS = (function() {
       vars = [],
       dot = '__dot__',
       val = '__val__',
-      path, property, variable;
+      path, property, variable,
+      regExp = /((["']).*?[^\\]\2|\b[A-Za-z](\.?\w+)*(?!\()\b|\.(?!\w))/g;
 
-    expression = expression.replace(/((?<!\.)\b[a-z]\w*(\.\w+\(?)*(?=(?:(?:[^"']*"[^"']*")|(?:[^'"]*'[^'"]*'))*[^"']*$)|((^|\s)\.(\s|$)))/g, function(match) {
+    debugLog('\n\n', expression);
+
+    expression = expression.replace(regExp, function(match) {
+      if (match[0].match(/["']/)) {
+        return match;
+      }
       if (match.replace(/\s/g, '') == '.') {
+        debugLog(' +  ', match + ';');
         return match.replace('.', dot);
       } else {
         path = match.replace(/\.\w+\(/, '').split('.');
@@ -322,16 +329,19 @@ ElementJS = (function() {
         if (vars.indexOf(variable) == -1) {
           try {
             eval('var ' + variable);
+            debugLog(' +  ', match + ';');
             vars.push(variable);
             bind(binding, node, path, parents);
           } catch (e) {
-            // reserved word
+            // reserved word probably
+            debugLog(' -  ', match + ';');
           }
         }
         return match;
       }
     });
 
+    debugLog(' $  ', expression + ';');
     vars.push(dot + ' = binding');
 
     try {

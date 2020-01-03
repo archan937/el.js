@@ -76,6 +76,20 @@ test('interpolate with plain JS', function(assert) {
   assert.equal(el.outerHTML, '<span>Paul Engel (ruby{, }elixir)</span>', 'does not crash when containing curly braces');
 });
 
+test('ignores quoted strings', function(assert) {
+  var el = render('<a href="{ \'https://\' + domain }">{ domain }</a>', {domain: 'awesome-site.com'});
+  assert.equal(el.outerHTML, '<a href="https://awesome-site.com">awesome-site.com</a>', 'does not match double quoted string');
+
+  var el = render('<a href="{ \'http\\\'s://\' + domain }">{ domain }</a>', {domain: 'awesome-site.com'});
+  assert.equal(el.outerHTML, '<a href="http\'s://awesome-site.com">awesome-site.com</a>', 'does not match double quoted string with escaped quotes');
+
+  var el = render("<a href='{ \"https://\" + domain }'>{ domain }</a>", {domain: 'awesome-site.com'});
+  assert.equal(el.outerHTML, "<a href=\"https://awesome-site.com\">awesome-site.com</a>", 'does not match single quoted string');
+
+  var el = render("<a href='{ \"http\\\"s://\" + domain }'>{ domain }</a>", {domain: 'awesome-site.com'});
+  assert.equal(el.outerHTML, "<a href=\"http&quot;s://awesome-site.com\">awesome-site.com</a>", 'does not match single quoted string');
+});
+
 test('interpolate with the notion of scoping', function(assert) {
   var
     el = render(`<div forEach="{ one }">
