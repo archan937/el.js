@@ -12,7 +12,7 @@
     </h2>
     <ul>
       <template>
-        <li for="{ super_heroes }">
+        <li forEach="{ super_heroes }">
           { name } ({ alter_ego })
         </li>
       </template>
@@ -21,12 +21,12 @@
       Groups
     </h2>
     <template>
-      <div for="{ groups }">
+      <div forEach="{ groups }">
         <h2>
           { name }
         </h2>
         <ul>
-          <li for="{ characters }">
+          <li forEach="{ characters }">
             { name }
           </li>
         </ul>

@@ -86,7 +86,7 @@ The return value is the binded object.
       <p>
         I am pretty much experienced in:
         <ul>
-          <li for="{ skills }">
+          <li forEach="{ skills }">
             { . }
           </li>
         </ul>
@@ -241,7 +241,7 @@ el.outerHTML;
 
 ### For loops
 
-You can render elements for arrays using the `for` attribute:
+You can render elements for arrays using the `forEach` attribute:
 
 _(in super-heroes.el)_
 
@@ -250,7 +250,7 @@ _(in super-heroes.el)_
   Super heroes
 </h1>
 <ul>
-  <li for="{ super_heroes }">
+  <li forEach="{ super_heroes }">
     <strong>{ name }</strong> ({ alter_ego })
   </li>
 </ul>

@@ -1,9 +1,9 @@
-<div for="{ groups }">
+<div forEach="{ groups }">
   <h2>
     { name }
   </h2>
   <ul>
-    <li for="{ characters }">
+    <li forEach="{ characters }">
       <strong>{ name }</strong>
     </li>
   </ul>

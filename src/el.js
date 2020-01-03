@@ -82,7 +82,7 @@ ElementJS = (function() {
     removeScripts(el);
     firstChild = el.children[0];
 
-    if ((el.children.length == 1) && !firstChild.getAttribute('for')) {
+    if ((el.children.length == 1) && !firstChild.getAttribute('forEach')) {
       return firstChild;
     } else {
       childNodes = el.childNodes;
@@ -110,7 +110,7 @@ ElementJS = (function() {
 
   insertTemplates = function(el) {
     var
-      nodes = el.querySelectorAll('[for],[if]'),
+      nodes = el.querySelectorAll('[forEach],[if]'),
       i, node, template;
 
     for (i = 0; i < nodes.length; i++) {
@@ -134,7 +134,7 @@ ElementJS = (function() {
   createTemplate = function(node) {
     var
       template = document.createElement('template'),
-      mapping = {'for': __for__, 'if': __if__},
+      mapping = {'forEach': __for__, 'if': __if__},
       attribute, value;
 
     for (attribute in mapping) {

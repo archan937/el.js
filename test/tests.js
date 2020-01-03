@@ -76,7 +76,7 @@ test('interpolate with plain JS', function(assert) {
 
 test('interpolate with the notion of scoping', function(assert) {
   var
-    el = render(`<div for="{ one }">
+    el = render(`<div forEach="{ one }">
 { name }
 </div>`, {name: 'root'}),
     object = el.binding;
@@ -227,7 +227,7 @@ test('<script type="text/element" src="..."></script> includes', function(assert
 
 test('render collections with primitive values', function(assert) {
   var
-    el = render('<ul><li for="{ skills }">{ . }</li></ul>', {skills: ['ruby', 'javascript', 'elixir']}),
+    el = render('<ul><li forEach="{ skills }">{ . }</li></ul>', {skills: ['ruby', 'javascript', 'elixir']}),
     object = el.binding;
 
   assert.equal(
