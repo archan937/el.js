@@ -2,6 +2,8 @@ var
   test = QUnit.test,
   render = ElementJS.render;
 
+ElementJS.debugMode(true);
+
 test('provide Elements.render()', function(assert) {
   var el = render();
   assert.ok(el instanceof HTMLElement, 'returns an HTMLElement');

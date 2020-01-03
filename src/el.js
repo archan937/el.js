@@ -17,6 +17,7 @@ ElementJS = (function() {
     elid = 1,
     templates = {},
     bindings = {},
+    debug = false,
 
     __binding__ = 'binding'    ,
     __elid__    = '__elid__'   ,
@@ -511,11 +512,23 @@ ElementJS = (function() {
     }
   },
 
+  debugMode = function(val) {
+    if (arguments.length) {
+      debug = val;
+    }
+    return debug;
+  },
+
+  debugLog = function() {
+    debugMode() && console.log.apply(this, arguments);
+  },
+
   pageBinding = bind({});
 
   ready(init);
 
   return {
+    debugMode: debugMode,
     renderPage: function(binding) {
       Object.assign(pageBinding, binding);
       ready(function() {
