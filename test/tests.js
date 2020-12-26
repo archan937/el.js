@@ -77,7 +77,7 @@ test('interpolate with plain JS', function(assert) {
 });
 
 test('ignores quoted strings', function(assert) {
-  var el = render('<a href="{ \'https://\' + domain }">{ domain }</a>', {domain: 'awesome-site.com'});
+  var el = render('<a el:href="{ \'https://\' + domain }">{ domain }</a>', {domain: 'awesome-site.com'});
   assert.equal(el.outerHTML, '<a href="https://awesome-site.com">awesome-site.com</a>', 'does not match double quoted string');
 
   var el = render('<a href="{ \'http\\\'s://\' + domain }">{ domain }</a>', {domain: 'awesome-site.com'});

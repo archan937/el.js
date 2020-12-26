@@ -151,6 +151,7 @@ ElementJS = (function() {
 
   renderNode = function(binding, el, parents) {
     var
+      elPrefix = /^el:/,
       walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
         acceptNode: function(node) {
           if (node.parentNode.tagName == 'TEMPLATE') {
@@ -167,10 +168,15 @@ ElementJS = (function() {
         if (node[__for__] || node[__if__]) {
           evaluateBlock(binding, node, parents);
         } else {
-          for (i = 0; i < node.attributes.length; i++) {
-            attr = node.attributes[i];
+          Array.from(node.attributes).forEach(function(attr) {
+            if (attr.nodeName.match(elPrefix)) {
+              var name = attr.nodeName.replace(elPrefix, '');
+              node.setAttribute(name, attr.nodeValue);
+              node.removeAttribute(attr.nodeName);
+              attr = node.getAttributeNode(name);
+            }
             evaluateNode(binding, attr, null, parents);
-          }
+          });
         }
       }
       if (node.nodeType == Node.TEXT_NODE) {
