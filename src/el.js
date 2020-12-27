@@ -240,10 +240,10 @@ ElementJS = (function() {
       }
 
       for (i = 0; i < value.length; i++) {
-        binding = value[i];
-        tag = elid + ':' + binding[__elid__];
+        var valbinding = value[i];
+        tag = elid + ':' + valbinding[__elid__];
         if (siblingTags.indexOf(tag) == -1) {
-          renderEl(binding, tag, i);
+          renderEl(valbinding, tag, i);
         }
       }
     } else {

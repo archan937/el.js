@@ -303,34 +303,34 @@ test('render collections', function(assert) {
 </ul>
 </div>`, 'updates elements after changing entries');
 
-//   delete object.super_heroes[0];
-//   delete object.super_heroes[2];
-//
-//   assert.equal(el.outerHTML, `<div><h1>
-//   Super heroes
-// </h1>
-// <ul>
-//   <li>
-//     <strong>Batman</strong> (Bram Engel)
-//   </li><li>
-//     <strong>Spider-Man</strong> (Peter Benjamin Parker)
-//   </li><li>
-//     <strong>Hulk</strong> (Robert Bruce Banner)
-//   </li><template></template>
-// </ul>
-// </div>`, 'removes elements after deleted entries');
-//
-//   object.super_heroes = [{name: 'Foo', alter_ego: 'Bar'}];
-//
-//   assert.equal(el.outerHTML, `<div><h1>
-//   Super heroes
-// </h1>
-// <ul>
-//   <li>
-//     <strong>Foo</strong> (Bar)
-//   </li><template></template>
-// </ul>
-// </div>`, 'replaces all elements after assigning new array');
+  delete object.super_heroes[0];
+  delete object.super_heroes[2];
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Batman</strong> (Bram Engel)
+  </li><li>
+    <strong>Spider-Man</strong> (Peter Benjamin Parker)
+  </li><li>
+    <strong>Hulk</strong> (Robert Bruce Banner)
+  </li><template></template>
+</ul>
+</div>`, 'removes elements after deleted entries');
+
+  object.super_heroes = [{name: 'Foo', alter_ego: 'Bar'}];
+
+  assert.equal(el.outerHTML, `<div><h1>
+  Super heroes
+</h1>
+<ul>
+  <li>
+    <strong>Foo</strong> (Bar)
+  </li><template></template>
+</ul>
+</div>`, 'replaces all elements after assigning new array');
 });
 
 test('render nested collections', function(assert) {
