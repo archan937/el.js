@@ -169,13 +169,16 @@ ElementJS = (function() {
           evaluateBlock(binding, node, parents);
         } else {
           Array.from(node.attributes).forEach(function(attr) {
+            var template = attr.nodeValue;
             if (attr.nodeName.match(elPrefix)) {
-              var name = attr.nodeName.replace(elPrefix, '');
-              node.setAttribute(name, attr.nodeValue);
+              var
+                name = attr.nodeName.replace(elPrefix, ''),
+                value = (name == 'src') ? '//:0' : '';
+              node.setAttribute(name, value);
               node.removeAttribute(attr.nodeName);
               attr = node.getAttributeNode(name);
             }
-            evaluateNode(binding, attr, null, parents);
+            evaluateNode(binding, attr, template, parents);
           });
         }
       }
